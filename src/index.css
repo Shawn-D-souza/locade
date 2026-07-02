@@ -1,4 +1,10 @@
+@import "@fontsource/roboto-mono";
 @import "tailwindcss";
+
+@theme {
+  /* Map Tailwind's default monospace font to Roboto Mono */
+  --font-mono: "Roboto Mono", monospace;
+}
 
 @layer base {
   body {
@@ -8,8 +14,10 @@
     background-size: 24px 24px;
     background-position: 0 0;
     
+    font-family: var(--font-mono);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   @media (min-width: 1024px) {
