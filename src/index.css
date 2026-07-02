@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: var(--color-slate-100);
+    
+    background-image: radial-gradient(var(--color-indigo-900) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: 0 0;
+    
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (min-width: 1024px) {
+    body {
+      background-size: 26px 26px;
+    }
+  }
+}
