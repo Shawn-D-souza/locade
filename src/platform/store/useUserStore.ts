@@ -18,44 +18,11 @@ const generateRandomName = () => {
     })
 }
 
-const getOrInitializeUser = (): { userId: string; userName: string } => {
-    const STORAGE_KEY = 'locade-user-storage';
-    try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            if (parsed.state?.userId && parsed.state?.userName) {
-                return {
-                    userId: parsed.state.userId,
-                    userName: parsed.state.userName
-                };
-            }
-        }
-    } catch (e) {
-        console.warn("Failed to load user state:", e);
-    }
-
-    const newUser = {
-        userId: uuid(),
-        userName: generateRandomName()
-    };
-
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ state: newUser, version: 0 }));
-    } catch (e) {
-        console.warn("Failed to save initial user state:", e);
-    }
-
-    return newUser;
-}
-
-const initialPlayer = getOrInitializeUser();
-
 export const useUser = create<User>()(
     persist(
         (set) => ({
-            userId: initialPlayer.userId,
-            userName: initialPlayer.userName,
+            userId: uuid(),
+            userName: generateRandomName(),
             setUserName: (newName) => set({ userName: newName })
         }),
         {
