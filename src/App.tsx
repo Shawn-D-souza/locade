@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useUser } from '../useUserStore';
+import { useUser } from './platform/store/useUserStore';
 import './App.css';
 
 function App() {
