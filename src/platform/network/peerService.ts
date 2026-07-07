@@ -7,20 +7,26 @@ class PeerService {
   private connections: Map<string, DataConnection> = new Map();
 
   // 1. Initialize as Host
-  public initializeHost(partyId: string) {
+  public initializeHost(partyId: string) { // partyId comes in as "123456"
     const { userId, userName } = useUser.getState();
     const networkStore = useNetworkStore.getState();
 
     networkStore.setStatus('connecting');
 
-    // We use the partyId as the explicit Peer ID for the host
-    this.peer = new Peer(partyId, {
+    // Create the prefixed network ID
+    const networkId = `locade-${partyId}`;
+
+    // Use the prefixed ID for the actual Peer connection
+    this.peer = new Peer(networkId, {
       debug: 2
     });
 
     this.peer.on('open', (id) => {
+      // id will be "locade-123456"
       console.log('Host connection open with ID:', id);
-      networkStore.setPartyDetails(id, true);
+      
+      // Save the clean partyId (123456) to the store for the UI, not the network ID
+      networkStore.setPartyDetails(partyId, true); 
       networkStore.setStatus('connected');
       
       // Add the host to their own roster
