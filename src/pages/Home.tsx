@@ -6,6 +6,7 @@ export default function Home() {
   const { userName, setUserName } = useUser();
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(userName);
+  const [joinId, setJoinId] = useState('');
   const navigate = useNavigate();
 
   const handleSave = () => {
@@ -14,9 +15,14 @@ export default function Home() {
   };
 
   const handleCreateParty = () => {
-    // TODO: Replace with actual WebRTC room/party generating the code
-    const mockPartyId = Math.random().toString(36).substring(2, 8).toUpperCase();
-    navigate(`/party/${mockPartyId}`);
+    const newPartyId = Math.random().toString(36).substring(2, 8).toUpperCase();
+    navigate(`/party/${newPartyId}`, { state: { isHost: true } });
+  };
+
+  const handleJoinParty = () => {
+    if (joinId.trim()) {
+      navigate(`/party/${joinId.trim().toUpperCase()}`, { state: { isHost: false } });
+    }
   };
 
   return (
@@ -44,9 +50,24 @@ export default function Home() {
         )}
       </div>
 
-      <button onClick={handleCreateParty}>
-        Start a Party
-      </button>
+      <div className="my-4">
+        <button onClick={handleCreateParty}>
+          Start a Party
+        </button>
+      </div>
+
+      <div className="my-4">
+        <input 
+          type="text" 
+          placeholder="Party Code"
+          value={joinId}
+          onChange={(e) => setJoinId(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleJoinParty()}
+        />
+        <button onClick={handleJoinParty}>
+          Join Party
+        </button>
+      </div>
     </div>
   );
 }

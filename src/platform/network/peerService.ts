@@ -1,4 +1,4 @@
-import { Peer, DataConnection } from 'peerjs';
+import { Peer, type DataConnection } from 'peerjs';
 import { useNetworkStore, type PeerPlayer } from '../store/useNetworkStore';
 import { useUser } from '../store/useUserStore';
 
