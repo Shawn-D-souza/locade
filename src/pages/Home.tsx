@@ -14,14 +14,14 @@ export default function Home() {
     setIsEditing(false);
   };
 
-  const handleCreateParty = () => {
-    const newPartyId = Math.random().toString(36).substring(2, 8).toUpperCase();
-    navigate(`/party/${newPartyId}`, { state: { isHost: true } });
+  const handleCreateLobby = () => {
+    const newLobbyId = Math.random().toString(36).substring(2, 8).toUpperCase();
+    navigate(`/lobby/${newLobbyId}`, { state: { isHost: true } });
   };
 
-  const handleJoinParty = () => {
+  const handleJoinLobby = () => {
     if (joinId.trim()) {
-      navigate(`/party/${joinId.trim().toUpperCase()}`, { state: { isHost: false } });
+      navigate(`/lobby/${joinId.trim().toUpperCase()}`, { state: { isHost: false } });
     }
   };
 
@@ -51,21 +51,21 @@ export default function Home() {
       </div>
 
       <div className="my-4">
-        <button onClick={handleCreateParty}>
-          Start a Party
+        <button onClick={handleCreateLobby}>
+          Start a Lobby
         </button>
       </div>
 
       <div className="my-4">
         <input 
           type="text" 
-          placeholder="Party Code"
+          placeholder="Lobby Code"
           value={joinId}
           onChange={(e) => setJoinId(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleJoinParty()}
+          onKeyDown={(e) => e.key === 'Enter' && handleJoinLobby()}
         />
-        <button onClick={handleJoinParty}>
-          Join Party
+        <button onClick={handleJoinLobby}>
+          Join Lobby
         </button>
       </div>
     </div>

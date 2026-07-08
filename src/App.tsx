@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
-import Party from './pages/Party';
+import Lobby from './pages/Lobby';
 import './App.css';
 
 function App() {
@@ -11,7 +11,7 @@ function App() {
         <Route path="/" element={<Home />} />
         
         {/* The Lobby Page */}
-        <Route path="/party/:partyId" element={<Party />} />
+        <Route path="/lobby/:lobbyId" element={<Lobby />} />
       </Routes>
     </BrowserRouter>
   );

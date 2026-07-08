@@ -17,7 +17,7 @@ interface NetworkState {
   // The Roster
   peers: PeerPlayer[];
 
-  setPartyDetails: (lobbyId: string, isHost: boolean) => void;
+  setLobbyDetails: (lobbyId: string, isHost: boolean) => void;
   setStatus: (status: ConnectionStatus, error?: string) => void;
   
   addPeer: (peer: PeerPlayer) => void;
@@ -34,7 +34,7 @@ export const useNetworkStore = create<NetworkState>()((set) => ({
   errorMessage: null,
   peers: [],
 
-  setPartyDetails: (lobbyId, isHost) => set({ lobbyId, isHost }),
+  setLobbyDetails: (lobbyId, isHost) => set({ lobbyId, isHost }),
   
   setStatus: (status, errorMessage) => set({ status, errorMessage: errorMessage ?? null }),
   

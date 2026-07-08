@@ -13,20 +13,20 @@ class PeerService {
   private hostConnection: DataConnection | null = null;
 
   // Helper to generate the unique namespace key
-  private getNetworkId(partyId: string): string {
-    return `locade-${partyId.toUpperCase()}`;
+  private getNetworkId(lobbyId: string): string {
+    return `locade-${lobbyId.toUpperCase()}`;
   }
 
   /**
    * Initialize as Host
    */
-  public initializeHost(partyId: string) {
+  public initializeHost(lobbyId: string) {
     const { userId, userName } = useUser.getState();
     const networkStore = useNetworkStore.getState();
 
     networkStore.setStatus('connecting');
 
-    const networkId = this.getNetworkId(partyId);
+    const networkId = this.getNetworkId(lobbyId);
 
     this.peer = new Peer(networkId, {
       debug: 2,
@@ -34,7 +34,7 @@ class PeerService {
 
     this.peer.on('open', () => {
       console.log('Host connection running with network ID:', networkId);
-      networkStore.setPartyDetails(partyId, true);
+      networkStore.setLobbyDetails(lobbyId, true);
       networkStore.setStatus('connected');
       
       // Seed roster with the host themselves
@@ -54,7 +54,7 @@ class PeerService {
   /**
    * Initialize as Guest & Connect to Host
    */
-  public joinParty(partyId: string) {
+  public joinLobby(lobbyId: string) {
     const networkStore = useNetworkStore.getState();
     networkStore.setStatus('connecting');
 
@@ -66,10 +66,10 @@ class PeerService {
     this.peer.on('open', (guestPeerId) => {
       console.log('Guest node initialized with cloud ID:', guestPeerId);
       
-      const hostNetworkId = this.getNetworkId(partyId);
+      const hostNetworkId = this.getNetworkId(lobbyId);
       const conn = this.peer!.connect(hostNetworkId);
       
-      this.handleHostConnection(conn, partyId);
+      this.handleHostConnection(conn, lobbyId);
     });
 
     this.peer.on('error', (err) => {
@@ -141,14 +141,14 @@ class PeerService {
   /**
    * Guest handling connection to Host
    */
-  private handleHostConnection(conn: DataConnection, partyId: string) {
+  private handleHostConnection(conn: DataConnection, lobbyId: string) {
     const { userId, userName } = useUser.getState();
     const networkStore = useNetworkStore.getState();
     this.hostConnection = conn;
 
     conn.on('open', () => {
       console.log('Connected to Host data channel safely.');
-      networkStore.setPartyDetails(partyId, false);
+      networkStore.setLobbyDetails(lobbyId, false);
       networkStore.setStatus('connected');
 
       // Executing Handshake: Send true profile identity immediately
