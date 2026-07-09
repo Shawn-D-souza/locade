@@ -131,15 +131,17 @@ export default function Lobby() {
             return (
               <div key={peer.id} className={`flex flex-row items-center justify-between border-2 rounded-xl p-3 px-4 transition-colors ${isMe ? 'border-indigo-900 border-[3px] bg-white' : 'border-indigo-900 bg-[#f0f2f5]'}`}>
                 <div className="flex items-center gap-3">
-                  <span className="text-xl font-bold text-indigo-900 flex items-center">
+                  <span className="text-xl font-bold text-indigo-900 flex items-center min-w-0 w-full">
                     {peer.isHost && (
-                      <span className="bg-red-400 text-white text-[0.8em] px-[6px] py-[2px] rounded border border-indigo-900 mr-2 inline-block">
+                      <span className="bg-red-400 text-white text-[0.8em] px-[6px] py-[2px] rounded border border-indigo-900 mr-2 inline-block shrink-0">
                         HOST
                       </span>
                     )}
-                    {peer.name}
+                    <span className="truncate max-w-[150px] sm:max-w-[250px]" title={peer.name}>
+                      {peer.name}
+                    </span>
                     {isMe && (
-                      <span className="text-[0.8em] text-slate-600 font-medium ml-[6px] relative -top-[2px]">(YOU)</span>
+                      <span className="text-[0.8em] text-slate-600 font-medium ml-[6px] relative -top-[2px] shrink-0">(YOU)</span>
                     )}
                   </span>
                 </div>

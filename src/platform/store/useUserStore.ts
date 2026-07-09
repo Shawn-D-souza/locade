@@ -10,12 +10,13 @@ interface User {
 }
 
 const generateRandomName = () => {
-    return uniqueNamesGenerator({
+    const name = uniqueNamesGenerator({
         dictionaries: [adjectives, animals],
         separator: " ",
         style: 'capital',
         length: 2
-    })
+    });
+    return name.length > 15 ? name.substring(0, 15).trim() : name;
 }
 
 export const useUser = create<User>()(

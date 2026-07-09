@@ -11,7 +11,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   const handleSave = () => {
-    if (inputValue.trim()) setUserName(inputValue.trim());
+    if (inputValue.trim()) setUserName(inputValue.trim().substring(0, 15));
     setIsEditing(false);
   };
 
@@ -42,6 +42,7 @@ export default function Home() {
               <input 
                 type="text" 
                 value={inputValue}
+                maxLength={15}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSave()}
                 className="font-mono text-xl text-indigo-900 bg-transparent border-b-2 border-red-500 rounded-none p-2 outline-none w-full text-center transition-colors focus:border-red-600"
