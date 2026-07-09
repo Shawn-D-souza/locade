@@ -29,4 +29,17 @@ export const useUser = create<User>()(
             name: 'locade-user-storage'
         }
     )
-)
+);
+
+// Zustand's persist middleware does not automatically save the initial default state.
+// We manually save it on the first load so the generated name and ID don't change on refresh.
+if (!localStorage.getItem('locade-user-storage')) {
+    const state = useUser.getState();
+    localStorage.setItem('locade-user-storage', JSON.stringify({
+        state: {
+            userId: state.userId,
+            userName: state.userName
+        },
+        version: 0
+    }));
+}
