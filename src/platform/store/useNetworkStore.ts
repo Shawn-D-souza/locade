@@ -76,6 +76,8 @@ export const useNetworkStore = create<NetworkState>()((set) => ({
     status: 'idle',
     errorMessage: null,
     peers: [],
-    incomingGameData: null
+    incomingGameData: null,
+    gameState: 'lobby',
+    activeGameId: null
   }),
 }));
