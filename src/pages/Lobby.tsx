@@ -5,11 +5,14 @@ import { useNetworkStore } from '../platform/store/useNetworkStore';
 import QRCode from 'react-qr-code';
 import { GAME_REGISTRY } from '../games/registry';
 import GameShell from '../features/game-shell/GameShell';
+import { useUser } from '../platform/store/useUserStore';
+import { Copy, Share2, AlertCircle } from 'lucide-react';
 
 export default function Lobby() {
   const { lobbyId } = useParams<{ lobbyId: string }>();
   const location = useLocation();
-  const { status, errorMessage, peers, isHost, gameState, activeGameId } = useNetworkStore();
+  const { errorMessage, peers, isHost, gameState, activeGameId } = useNetworkStore();
+  const { userId } = useUser();
   const initialized = useRef(false);
   const currentUrl = window.location.href;
 
@@ -46,6 +49,22 @@ export default function Lobby() {
     };
   }, [lobbyId, location.state]);
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(currentUrl);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Join Locade Lobby',
+        text: `Join my Locade lobby: ${lobbyId}`,
+        url: currentUrl,
+      });
+    } else {
+      handleCopy();
+    }
+  };
+
   if (gameState === 'game' && activeGameId) {
     const ActiveGameComponent = GAME_REGISTRY[activeGameId]?.component;
     if (ActiveGameComponent) {
@@ -56,57 +75,130 @@ export default function Lobby() {
   }
 
   return (
-    <div>
-      <h1>Party Lobby</h1>
-      <p>Room Code: <strong>{lobbyId}</strong></p>
+    <div className="flex flex-col justify-start items-stretch gap-4 w-full min-h-[100dvh] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono pt-10 pb-20">
       
-      <div style={{ marginTop: '16px', marginBottom: '16px' }}>
-        <QRCode value={currentUrl} />
-      </div>
+      {/* Header */}
+      <h1 className="text-[2.5rem] font-black uppercase text-center text-indigo-900 mt-0 pt-0 tracking-[-1.5px] mx-auto mb-2">
+        Locade
+      </h1>
 
-      <div>
-        <p>Status: {status}</p>
-        {errorMessage && <p>Error: {errorMessage}</p>}
-      </div>
+      {errorMessage && (
+        <div className="bg-red-100 border-2 border-red-500 rounded-xl p-3 flex items-center gap-3 text-red-700 font-bold mb-2">
+          <AlertCircle className="w-6 h-6 shrink-0" />
+          <p>{errorMessage}</p>
+        </div>
+      )}
 
-      <div>
-        <h2>Players</h2>
-        <ul>
-          {peers.map((peer) => (
-            <li key={peer.id}>
-              {peer.name} {peer.isHost && '(Host)'}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {/* Code and QR Section */}
+      <section className="flex flex-col">
+        <h2 className="text-[1.2rem] font-semibold uppercase text-slate-600 text-left -mb-[2px] px-2 ml-2 bg-[#f0f2f5] inline-block relative z-10 w-fit self-start">
+          Lobby
+        </h2>
+        <div className="bg-white border-2 border-indigo-900 rounded-3xl w-full p-5 sm:p-6 flex flex-col gap-5 mb-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            {/* QR Code */}
+            <div className="w-40 h-40 shrink-0 bg-white border-4 border-indigo-900 rounded-2xl p-3 flex items-center justify-center relative">
+              <QRCode value={currentUrl} size={120} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+            </div>
 
-      {isHost && (
-        <div>
-          <h2>Available Games</h2>
-          <div>
-            {Object.values(GAME_REGISTRY).map((game) => {
-              const hasEnoughPlayers = totalPlayers >= game.minPlayers;
-              const hasTooManyPlayers = totalPlayers > game.maxPlayers;
-              const canStartGame = hasEnoughPlayers && !hasTooManyPlayers;
-
-              return (
-                <div key={game.id} onClick={() => canStartGame && handleStartGame(game.id)}>
-                  <h3>{game.name}</h3>
-                  <p>Players: {game.minPlayers} - {game.maxPlayers}</p>
-                  
-                  {!hasEnoughPlayers && (
-                    <p>Waiting for more players ({totalPlayers}/{game.minPlayers})</p>
-                  )}
-                  {hasTooManyPlayers && (
-                    <p>Too many players ({totalPlayers}/{game.maxPlayers})</p>
-                  )}
-                  {canStartGame && (
-                    <p>Click to start playing!</p>
-                  )}
-                </div>
-              );
-            })}
+            {/* Lobby ID and actions */}
+            <div className="flex flex-col w-full gap-3">
+              <div className="bg-white border-4 border-indigo-900 rounded-xl flex items-center justify-center text-4xl sm:text-5xl font-black text-indigo-900 tracking-[8px] sm:tracking-[12px] h-20 pl-2">
+                {lobbyId}
+              </div>
+              
+              <div className="flex gap-3 mt-1">
+                <button onClick={handleCopy} className="flex-1 h-14 bg-[#f0f2f5] hover:bg-slate-200 text-indigo-900 border-2 border-indigo-900 rounded-xl p-3 font-bold shadow-[2px_2px_0_theme(colors.indigo.900)] active:shadow-none active:translate-y-[2px] active:translate-x-[2px] transition-all flex justify-center items-center gap-2">
+                  <Copy className="w-6 h-6" />
+                </button>
+                <button onClick={handleShare} className="flex-1 h-14 bg-[#f0f2f5] hover:bg-slate-200 text-indigo-900 border-2 border-indigo-900 rounded-xl p-3 font-bold shadow-[2px_2px_0_theme(colors.indigo.900)] active:shadow-none active:translate-y-[2px] active:translate-x-[2px] transition-all flex justify-center items-center gap-2">
+                  <Share2 className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
+      </section>
+
+      {/* Players Section */}
+      <section className="flex flex-col">
+        <h2 className="text-[1.2rem] font-semibold uppercase text-slate-600 text-left -mb-[2px] px-2 ml-2 bg-[#f0f2f5] inline-block relative z-10 w-fit self-start">
+          Players ({totalPlayers})
+        </h2>
+        <div className="bg-white border-2 border-indigo-900 rounded-3xl w-full p-4 sm:p-6 flex flex-col gap-3 mb-4">
+          {peers.map((peer) => {
+            const isMe = peer.id === userId;
+            return (
+              <div key={peer.id} className={`flex flex-row items-center justify-between border-2 rounded-xl p-3 px-4 transition-colors ${isMe ? 'border-indigo-900 border-[3px] bg-white' : 'border-indigo-900 bg-[#f0f2f5]'}`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl font-bold text-indigo-900 flex items-center">
+                    {peer.isHost && (
+                      <span className="bg-red-400 text-white text-[0.8em] px-[6px] py-[2px] rounded border border-indigo-900 mr-2 inline-block">
+                        HOST
+                      </span>
+                    )}
+                    {peer.name}
+                    {isMe && (
+                      <span className="text-[0.8em] text-slate-600 font-medium ml-[6px] relative -top-[2px]">(YOU)</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+          {peers.length === 0 && (
+            <div className="p-4 text-center text-slate-400 font-bold uppercase tracking-widest animate-pulse">
+              Waiting for players...
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Games Section */}
+      {isHost ? (
+        <section className="flex flex-col">
+          <h2 className="text-[1.2rem] font-semibold uppercase text-slate-600 text-left -mb-[2px] px-2 ml-2 bg-[#f0f2f5] inline-block relative z-10 w-fit self-start">
+            Games
+          </h2>
+          <div className="bg-white border-2 border-indigo-900 rounded-3xl w-full p-4 sm:p-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-1">
+              {Object.values(GAME_REGISTRY).map((game) => {
+                const hasEnoughPlayers = totalPlayers >= game.minPlayers;
+                const hasTooManyPlayers = totalPlayers > game.maxPlayers;
+                const canStartGame = hasEnoughPlayers && !hasTooManyPlayers;
+
+                return (
+                  <div 
+                    key={game.id} 
+                    onClick={() => canStartGame && handleStartGame(game.id)}
+                    className={`relative border-4 border-indigo-900 rounded-2xl overflow-hidden aspect-square flex flex-col group ${canStartGame ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg transition-transform' : 'cursor-not-allowed opacity-75'}`}
+                  >
+                    <div className={`w-full h-full flex items-center justify-center bg-[#f0f2f5] transition-opacity pb-8 ${canStartGame ? 'group-active:opacity-80' : 'grayscale opacity-50'}`}>
+                      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #312e81 1px, transparent 0)', backgroundSize: '12px 12px' }}></div>
+                      <span className="text-[4rem] font-black text-indigo-900/20 uppercase tracking-tighter relative z-10">
+                        {game.name.substring(0, 2)}
+                      </span>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-white text-indigo-900 border-t-4 border-indigo-900 p-2 text-center font-black uppercase text-sm tracking-[1px] leading-tight flex items-center justify-center min-h-[48px]">
+                      {game.name}
+                    </div>
+
+                    {!canStartGame && (
+                      <div className="absolute inset-0 mb-12 bg-slate-900/40 flex items-center justify-center backdrop-blur-[2px]">
+                        <span className="bg-white text-indigo-900 font-black px-2 py-1 rounded text-xs uppercase border-2 border-indigo-900">
+                          {hasTooManyPlayers ? 'Max Reached' : `Need ${game.minPlayers - totalPlayers}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      ) : (
+        <div className="mt-4 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">
+          Waiting for host to pick a game...
         </div>
       )}
     </div>
