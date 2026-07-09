@@ -75,10 +75,10 @@ export default function Lobby() {
   }
 
   return (
-    <div className="flex flex-col justify-start items-stretch gap-4 w-full min-h-[100dvh] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono pt-10 pb-20">
+    <div className="flex flex-col justify-start items-stretch gap-0 w-full min-h-[100dvh] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono pt-4 sm:pt-8 pb-20">
       
       {/* Header */}
-      <h1 className="text-[2.5rem] font-black uppercase text-center text-indigo-900 mt-0 pt-0 tracking-[-1.5px] mx-auto mb-2">
+      <h1 className="text-4xl md:text-[2.5rem] font-black uppercase text-center text-indigo-900 mt-0 pt-0 -mb-6 sm:mb-0 tracking-[-1.5px] mx-auto relative">
         Locade
       </h1>
 
