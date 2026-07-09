@@ -8,6 +8,8 @@ import GameShell from '../features/game-shell/GameShell';
 import { useUser } from '../platform/store/useUserStore';
 import { Copy, Share2, AlertCircle } from 'lucide-react';
 
+let disconnectTimeout: ReturnType<typeof setTimeout> | undefined;
+
 export default function Lobby() {
   const { lobbyId } = useParams<{ lobbyId: string }>();
   const location = useLocation();
@@ -31,21 +33,34 @@ export default function Lobby() {
   };
 
   useEffect(() => {
-    if (!lobbyId || initialized.current) return;
-    initialized.current = true;
-    
-    // Default to guest if not explicitly started as host
-    const isHosting = location.state?.isHost === true;
+    if (!lobbyId) return;
 
-    if (isHosting) {
-      peerService.initializeHost(lobbyId);
-    } else {
-      peerService.joinLobby(lobbyId);
+    // Cancel pending disconnect if remounting instantly (React Strict Mode fix)
+    if (disconnectTimeout) {
+      clearTimeout(disconnectTimeout);
+      disconnectTimeout = undefined;
+    }
+
+    if (!initialized.current) {
+      initialized.current = true;
+      
+      // Default to guest if not explicitly started as host
+      const isHosting = location.state?.isHost === true;
+
+      if (isHosting) {
+        peerService.initializeHost(lobbyId);
+      } else {
+        peerService.joinLobby(lobbyId);
+      }
     }
 
     return () => {
-      peerService.disconnect();
-      initialized.current = false;
+      // Delay disconnect to gracefully handle Strict Mode remount cycles
+      disconnectTimeout = setTimeout(() => {
+        peerService.disconnect();
+        initialized.current = false;
+        disconnectTimeout = undefined;
+      }, 150);
     };
   }, [lobbyId, location.state]);
 
