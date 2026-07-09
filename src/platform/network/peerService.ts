@@ -5,7 +5,10 @@ import { useUser } from '../store/useUserStore';
 // Strict typing for network data payloads
 type PeerMessage =
   | { type: 'HELLO'; payload: { id: string; name: string } }
-  | { type: 'ROSTER_UPDATE'; payload: PeerPlayer[] };
+  | { type: 'ROSTER_UPDATE'; payload: PeerPlayer[] }
+  | { type: 'START_GAME'; payload: { gameId: string } }
+  | { type: 'END_GAME'; payload: null }
+  | { type: 'GAME_DATA'; payload: any };
 
 class PeerService {
   private peer: Peer | null = null;
@@ -113,6 +116,18 @@ class PeerService {
           payload: useNetworkStore.getState().peers
         });
       }
+
+      if (message.type === 'GAME_DATA') {
+        // Update local game state with incoming data
+        useNetworkStore.setState({ incomingGameData: message.payload });
+        
+        // Relay game data to other connected clients
+        this.connections.forEach((c) => {
+          if (c.open && c.peer !== conn.peer) {
+            c.send(message);
+          }
+        });
+      }
     });
 
     conn.on('close', () => {
@@ -167,6 +182,18 @@ class PeerService {
         // Sync entire peer list directly to local store state from the authoritative source (Host)
         useNetworkStore.setState({ peers: message.payload });
       }
+
+      if (message.type === 'START_GAME') {
+        useNetworkStore.setState({ gameState: 'game', activeGameId: message.payload.gameId });
+      }
+
+      if (message.type === 'END_GAME') {
+        useNetworkStore.setState({ gameState: 'lobby', activeGameId: null });
+      }
+
+      if (message.type === 'GAME_DATA') {
+        useNetworkStore.setState({ incomingGameData: message.payload });
+      }
     });
 
     conn.on('close', () => {
@@ -179,6 +206,17 @@ class PeerService {
   /**
    * Utilities & Broadcasting 
    */
+  public broadcast(message: PeerMessage) {
+    const isHost = useNetworkStore.getState().isHost;
+    if (isHost) {
+      this.broadcastToAllGuests(message);
+    } else {
+      if (this.hostConnection && this.hostConnection.open) {
+        this.hostConnection.send(message);
+      }
+    }
+  }
+
   private broadcastToAllGuests(message: PeerMessage) {
     this.connections.forEach((conn) => {
       if (conn.open) {

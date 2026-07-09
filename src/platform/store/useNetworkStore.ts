@@ -13,6 +13,12 @@ interface NetworkState {
   isHost: boolean;
   status: ConnectionStatus;
   errorMessage: string | null;
+  gameState: 'lobby' | 'game';
+  activeGameId: string | null;
+  setGameState: (state: 'lobby' | 'game', gameId?: string) => void;
+
+  incomingGameData: any;
+  clearIncomingGameData: () => void;
 
   // The Roster
   peers: PeerPlayer[];
@@ -33,6 +39,15 @@ export const useNetworkStore = create<NetworkState>()((set) => ({
   status: 'idle',
   errorMessage: null,
   peers: [],
+  gameState: 'lobby',
+  activeGameId: null,
+  incomingGameData: null,
+  clearIncomingGameData: () => set({ incomingGameData: null }),
+
+  setGameState: (gameState, activeGameId) => set((state) => ({ 
+    gameState, 
+    activeGameId: activeGameId !== undefined ? activeGameId : state.activeGameId 
+  })),
 
   setLobbyDetails: (lobbyId, isHost) => set({ lobbyId, isHost }),
   
@@ -60,6 +75,7 @@ export const useNetworkStore = create<NetworkState>()((set) => ({
     isHost: true,
     status: 'idle',
     errorMessage: null,
-    peers: []
+    peers: [],
+    incomingGameData: null
   }),
 }));
