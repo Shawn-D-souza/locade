@@ -1,24 +1,48 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { GameProps } from '../GameProps';
 import { useNetworkStore } from '../../platform/store/useNetworkStore';
-import { Activity, XCircle } from 'lucide-react';
+import { useUser } from '../../platform/store/useUserStore';
+import { Activity, XCircle, User as UserIcon } from 'lucide-react';
 
 export type PingData = {
   action: 'PING';
+  userId: string;
+  score: number;
 };
 
 export default function Ping({ sendDataToPeers, incomingData, onGameEnd }: GameProps<PingData>) {
-  const [pingsReceived, setPingsReceived] = useState(0);
-  const { isHost } = useNetworkStore();
+  const [scores, setScores] = useState<Record<string, number>>({});
+  const { isHost, peers } = useNetworkStore();
+  const { userId, userName } = useUser();
+
+  const allPlayers = useMemo(() => {
+    return [
+      { id: userId, name: userName + " (You)" },
+      ...peers.filter(p => p.id !== userId).map(p => ({ id: p.id, name: p.name }))
+    ];
+  }, [peers, userId, userName]);
 
   useEffect(() => {
-    if (incomingData?.action === 'PING') {
-      setPingsReceived(prev => prev + 1);
+    if (incomingData?.action === 'PING' && incomingData.userId) {
+      setScores(prev => ({
+        ...prev,
+        [incomingData.userId]: incomingData.score
+      }));
     }
   }, [incomingData]);
 
   const handlePlayerAction = () => {
-    sendDataToPeers({ action: 'PING' });
+    setScores(prev => {
+      const currentScore = prev[userId] || 0;
+      const newScore = currentScore + 1;
+      
+      sendDataToPeers({ action: 'PING', userId, score: newScore });
+      
+      return {
+        ...prev,
+        [userId]: newScore
+      };
+    });
   };
 
   return (
@@ -32,16 +56,29 @@ export default function Ping({ sendDataToPeers, incomingData, onGameEnd }: GameP
 
       <div className="bg-white border-[3px] border-indigo-900 rounded-3xl w-full p-6 sm:p-8 flex flex-col gap-6 items-center">
         
-        {/* Score / Pings display */}
-        <div className="bg-[#f0f2f5] border-[3px] border-indigo-900 rounded-2xl p-6 w-full flex flex-col items-center gap-2 shadow-[inset_0_4px_0_theme(colors.indigo.900),inset_4px_0_0_theme(colors.indigo.900),inset_-4px_0_0_theme(colors.indigo.900)]">
-          <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Pings Received</span>
-          <span className="text-7xl font-black text-indigo-900 tracking-tighter">{pingsReceived}</span>
+        {/* Score Board */}
+        <div className="w-full flex flex-col gap-3">
+          <h2 className="text-xl font-bold text-slate-500 uppercase tracking-widest mb-2 text-center">Players</h2>
+          {allPlayers.map((player) => (
+            <div key={player.id} className="bg-[#f0f2f5] border-[3px] border-indigo-900 rounded-2xl p-4 w-full flex items-center justify-between">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="bg-indigo-100 p-2 rounded-full border-2 border-indigo-900 shrink-0">
+                  <UserIcon className="w-5 h-5 text-indigo-900" strokeWidth={2.5} />
+                </div>
+                <span className="text-lg font-bold text-slate-700 truncate max-w-[150px] sm:max-w-[200px]">{player.name}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-sm font-bold text-slate-400 uppercase">Pings</span>
+                <span className="text-3xl font-black text-indigo-900 tracking-tighter min-w-[2ch] text-right">{scores[player.id] || 0}</span>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Action Button */}
         <button 
           onClick={handlePlayerAction}
-          className="w-full bg-red-400 hover:bg-red-500 text-white border-[3px] border-indigo-900 rounded-2xl py-6 font-mono text-2xl font-black uppercase tracking-wider shadow-[0_6px_0_theme(colors.indigo.900)] active:shadow-none active:translate-y-[6px] active:translate-x-[2px] transition-all flex items-center justify-center gap-3"
+          className="w-full bg-red-400 hover:bg-red-500 text-white border-[3px] border-b-[9px] border-indigo-900 rounded-2xl py-6 font-mono text-2xl font-black uppercase tracking-wider active:border-b-[3px] active:mb-[6px] active:translate-y-[6px] flex items-center justify-center gap-3 mt-4"
         >
           <Activity className="w-8 h-8" strokeWidth={3} />
           Send Ping
