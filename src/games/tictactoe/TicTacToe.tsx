@@ -170,27 +170,56 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
     }
   }, [peers, isHost, userId, onGameEnd]);
 
+  // Helper to determine player color (Host = Red, Guest = Blue)
+  const getPlayerColor = (id: string | null) => {
+    if (!id) return 'gray';
+    if (id === userId) return isHost ? 'red' : 'blue';
+    const peer = peers.find(p => p.id === id);
+    if (peer) return peer.isHost ? 'red' : 'blue';
+    return 'gray';
+  };
+
   if (!gameState) {
-    return <div>Initializing Game...</div>;
+    return (
+      <div className="flex flex-1 items-center justify-center w-full h-full min-h-[100dvh] bg-slate-50 touch-none overflow-hidden">
+        <div className="animate-pulse text-2xl font-black uppercase text-indigo-900 tracking-widest">Initializing Game...</div>
+      </div>
+    );
   }
 
   // --- Win/Loss Screen ---
   if (gameState.status === 'win') {
     const isWinner = gameState.winnerId === userId;
+    const winnerColor = getPlayerColor(gameState.winnerId);
+    const bgClass = winnerColor === 'red' ? 'bg-red-100' : 'bg-indigo-100';
     
     return (
-      <div>
-        <h1>
-          {isWinner ? 'You Won!' : 'You Lost'}
-        </h1>
+      <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] animate-in fade-in zoom-in duration-300 transition-colors duration-500 ${bgClass} font-mono p-4 touch-none overflow-hidden`}>
+        <div className="text-center mb-10 bg-white shadow-2xl rounded-3xl p-8 sm:p-10 w-full max-w-[400px]">
+          <h1 className={`text-6xl sm:text-7xl font-black uppercase tracking-tight ${isWinner ? 'text-emerald-500' : 'text-red-500'}`}>
+            {isWinner ? 'Victory!' : 'Defeat'}
+          </h1>
+        </div>
         
         {isHost ? (
-          <div>
-            <button onClick={onGameEnd}>Quit</button>
-            <button onClick={handleRestart}>Restart</button>
+          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[400px]">
+            <button 
+              onClick={onGameEnd}
+              className="flex-1 bg-slate-100 text-indigo-900 rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow-md hover:shadow-lg hover:bg-slate-200 active:scale-95 transition-all"
+            >
+              Quit
+            </button>
+            <button 
+              onClick={handleRestart}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow-md hover:shadow-lg active:scale-95 transition-all"
+            >
+              Play Again
+            </button>
           </div>
         ) : (
-          <div>Waiting for host to restart...</div>
+          <div className="text-indigo-900/60 font-black text-xl uppercase animate-pulse mt-4 tracking-widest text-center">
+            Waiting for Host...
+          </div>
         )}
       </div>
     );
@@ -205,12 +234,13 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
 
   const amITurn = gameState.currentTurnId === userId;
   const myMark = gameState.xPlayerId === userId ? 'X' : 'O';
+  const currentTurnColor = getPlayerColor(gameState.currentTurnId);
 
   let statusText = '';
   if (gameState.status === 'draw') {
-    statusText = 'Draw!'; // Technically won't show because auto-restart is instant, but keeping just in case
+    statusText = 'Draw!';
   } else {
-    statusText = amITurn ? `Your turn (${myMark})` : "Opponent's turn...";
+    statusText = amITurn ? 'Your turn' : "Opponent's turn";
   }
 
   const handleClick = (index: number) => {
@@ -223,26 +253,60 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
     }
   };
 
+  const bgClass = currentTurnColor === 'red' ? 'bg-red-100' : 'bg-indigo-100';
+
   return (
-    <div>
-      <h1>TicTacToe</h1>
+    <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] select-none transition-colors duration-500 font-mono ${bgClass} p-4 touch-none overflow-hidden`}>
+      {/* Header section */}
+      <div className="mb-10 flex flex-col items-center justify-center space-y-2">
+        <div className={`px-8 py-4 rounded-2xl font-black text-xl uppercase transition-colors duration-300 shadow-lg
+          ${currentTurnColor === 'red' 
+            ? 'bg-red-400 text-white' 
+            : 'bg-indigo-600 text-white'
+          }
+          ${!amITurn ? 'opacity-80 scale-95 shadow-md' : ''}
+        `}>
+          {statusText} {amITurn && <span className="ml-2 opacity-90">({myMark})</span>}
+        </div>
+      </div>
       
-      <div>{statusText}</div>
-      
-      <div className="grid grid-cols-3 gap-1 w-max">
-        {gameState.board.map((cellUserId, index) => {
-          const mark = getDisplayMark(cellUserId);
-          return (
-            <button
-              key={index}
-              onClick={() => handleClick(index)}
-              className="w-16 h-16 border border-black"
-              disabled={!!cellUserId || gameState.status !== 'playing' || !amITurn}
-            >
-              {mark}
-            </button>
-          );
-        })}
+      {/* Board */}
+      <div className="bg-white/60 backdrop-blur-md shadow-2xl p-4 sm:p-6 rounded-[2.5rem]">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 w-max">
+          {gameState.board.map((cellUserId, index) => {
+            const mark = getDisplayMark(cellUserId);
+            const markColor = getPlayerColor(cellUserId);
+            const textClass = markColor === 'red' ? 'text-red-500' : 'text-indigo-600';
+            
+            // Generate interactive classes for empty buttons when it's our turn
+            const isInteractive = !mark && amITurn && gameState.status === 'playing';
+            const interactiveClasses = isInteractive 
+              ? 'bg-slate-50 hover:bg-red-50 active:translate-y-[6px] shadow-[0_6px_0_theme(colors.indigo.900)] active:shadow-[0_0px_0_theme(colors.indigo.900)] cursor-pointer' 
+              : 'bg-slate-50/50 cursor-default shadow-[0_6px_0_theme(colors.indigo.900)]';
+              
+            // Pressed state for filled marks
+            const filledClasses = mark 
+              ? 'bg-white translate-y-[6px] shadow-[0_0px_0_theme(colors.indigo.900)] cursor-default' 
+              : '';
+            
+            return (
+              <button
+                key={index}
+                onClick={() => handleClick(index)}
+                className={`w-24 h-24 sm:w-32 sm:h-32 rounded-3xl flex items-center justify-center text-7xl font-black uppercase transition-all duration-150 border-[3px] border-indigo-900
+                  ${mark ? filledClasses : interactiveClasses}
+                `}
+                disabled={!!cellUserId || gameState.status !== 'playing' || !amITurn}
+              >
+                {mark && (
+                  <span className={`transform transition-all duration-300 animate-in zoom-in spin-in-12 ${textClass} drop-shadow-md`}>
+                    {mark}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
