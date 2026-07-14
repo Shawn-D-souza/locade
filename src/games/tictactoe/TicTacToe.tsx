@@ -157,6 +157,19 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
     }
   }, [incomingData, isHost]);
 
+  // Handle guest dropping
+  useEffect(() => {
+    if (isHost && initialized.current) {
+      // Safely determine if the opponent is still connected
+      const otherPeers = peers.filter(p => p.id !== userId);
+      
+      // If total peers drop below 2 (or the specific guest drops), end the game
+      if (peers.length < 2 || otherPeers.length === 0) {
+        onGameEnd();
+      }
+    }
+  }, [peers, isHost, userId, onGameEnd]);
+
   if (!gameState) {
     return <div>Initializing Game...</div>;
   }
