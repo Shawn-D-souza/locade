@@ -1,4 +1,4 @@
-import Ping from './ping/Ping';
+import TicTacToe from './tictactoe/TicTacToe';
 
 export interface GameConfig {
   id: string;
@@ -9,11 +9,11 @@ export interface GameConfig {
 }
 
 export const GAME_REGISTRY: Record<string, GameConfig> = {
-  ping: {
-    id: 'ping',
-    name: 'Ping Test',
-    minPlayers: 2, 
-    maxPlayers: 8,
-    component: Ping,
+  tictactoe: {
+    id: 'tictactoe',
+    name: 'Tic Tac Toe',
+    minPlayers: 2,
+    maxPlayers: 2,
+    component: TicTacToe,
   }
 };
