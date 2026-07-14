@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "@fontsource/roboto-mono": "^5.2.9",
+    "@posthog/react": "^1.10.3",
     "@tailwindcss/vite": "^4.3.2",
     "lucide-react": "^1.23.0",
     "peerjs": "^1.5.5",
     "phaser": "^4.2.0",
+    "posthog-js": "^1.399.5",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-qr-code": "^2.2.0",
