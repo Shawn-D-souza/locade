@@ -16,12 +16,12 @@ export default function Home() {
   };
 
   const handleCreateLobby = () => {
-    const newLobbyId = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const newLobbyId = Math.floor(100000 + Math.random() * 900000).toString();
     navigate(`/lobby/${newLobbyId}`, { state: { isHost: true } });
   };
 
   const handleJoinLobby = () => {
-    const code = joinId.trim().toUpperCase();
+    const code = joinId.trim();
     if (code.length === 6) {
       navigate(`/lobby/${code}`, { state: { isHost: false } });
     }
@@ -106,10 +106,12 @@ export default function Home() {
         <div className="flex flex-col gap-3">
           <input 
             type="text" 
+            inputMode="numeric"
+            pattern="[0-9]*"
             placeholder="CODE"
             value={joinId}
             maxLength={6}
-            onChange={(e) => setJoinId(e.target.value.toUpperCase())}
+            onChange={(e) => setJoinId(e.target.value.replace(/[^0-9]/g, ''))}
             onKeyDown={(e) => e.key === 'Enter' && joinId.trim().length === 6 && handleJoinLobby()}
             className="w-full bg-slate-50 focus:bg-white border-2 border-indigo-900 rounded-xl p-4 font-mono text-xl font-bold uppercase text-indigo-900 outline-none tracking-[8px] placeholder:tracking-[2px] placeholder:text-indigo-900/40 text-center transition-colors h-[60px]"
           />
