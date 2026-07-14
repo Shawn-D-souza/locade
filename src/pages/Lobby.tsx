@@ -7,6 +7,7 @@ import { GAME_REGISTRY } from '../games/registry';
 import GameShell from '../features/game-shell/GameShell';
 import { useUser } from '../platform/store/useUserStore';
 import { Copy, Share2, AlertCircle } from 'lucide-react';
+import InterruptionModal from '../components/InterruptionModal';
 
 let disconnectTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -83,14 +84,21 @@ export default function Lobby() {
   if (gameState === 'game' && activeGameId) {
     const ActiveGameComponent = GAME_REGISTRY[activeGameId]?.component;
     if (ActiveGameComponent) {
-      return <GameShell GameComponent={ActiveGameComponent} />;
+      return (
+        <>
+          <InterruptionModal />
+          <GameShell GameComponent={ActiveGameComponent} />
+        </>
+      );
     } else {
       return <div>Game component not found for {activeGameId}!</div>;
     }
   }
 
   return (
-    <div className="flex flex-col justify-start items-stretch gap-0 w-full min-h-[100dvh] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono pt-4 sm:pt-8 pb-20">
+    <>
+      <InterruptionModal />
+      <div className="flex flex-col justify-start items-stretch gap-0 w-full min-h-[100dvh] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono pt-4 sm:pt-8 pb-20">
       
       {/* Header */}
       <h1 className="text-4xl md:text-[2.5rem] font-black uppercase text-center text-indigo-900 mt-0 pt-0 -mb-6 sm:mb-0 tracking-[-1.5px] mx-auto relative">
@@ -219,5 +227,6 @@ export default function Lobby() {
         </div>
       )}
     </div>
+    </>
   );
 }

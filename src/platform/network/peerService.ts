@@ -166,6 +166,18 @@ class PeerService {
       networkStore.setLobbyDetails(lobbyId, false);
       networkStore.setStatus('connected');
 
+      // Listen for underlying WebRTC connection drops (e.g., Host closes tab)
+      if (conn.peerConnection) {
+        conn.peerConnection.oniceconnectionstatechange = () => {
+          const state = conn.peerConnection.iceConnectionState;
+          if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+            console.warn('Host ICE connection dropped.');
+            this.disconnect();
+            useNetworkStore.getState().setStatus('error', 'The host has disconnected.');
+          }
+        };
+      }
+
       // Executing Handshake: Send true profile identity immediately
       const handshake: PeerMessage = {
         type: 'HELLO',
