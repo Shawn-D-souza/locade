@@ -31,9 +31,20 @@ class PeerService {
 
     const networkId = this.getNetworkId(lobbyId);
 
-    this.peer = new Peer(networkId, {
+    const PEER_CONFIG = {
       debug: 2,
-    });
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
+        ]
+      }
+    };
+
+    this.peer = new Peer(networkId, PEER_CONFIG);
 
     this.peer.on('open', () => {
       console.log('Host connection running with network ID:', networkId);
@@ -61,10 +72,21 @@ class PeerService {
     const networkStore = useNetworkStore.getState();
     networkStore.setStatus('connecting');
 
-    // Guests let PeerJS generate a clean random cloud ID for their own node
-    this.peer = new Peer({
+    const PEER_CONFIG = {
       debug: 2,
-    });
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
+        ]
+      }
+    };
+
+    // Guests let PeerJS generate a clean random cloud ID for their own node
+    this.peer = new Peer(PEER_CONFIG);
 
     this.peer.on('open', (guestPeerId) => {
       console.log('Guest node initialized with cloud ID:', guestPeerId);
