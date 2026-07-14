@@ -9,6 +9,17 @@ import { useUser } from '../platform/store/useUserStore';
 import { Copy, Share2, AlertCircle } from 'lucide-react';
 import InterruptionModal from '../components/InterruptionModal';
 
+const PLAYER_COLORS = [
+  '#FF6B6B', // P1: Action Red
+  '#4D96FF', // P2: Player Blue
+  '#6BCB77', // P3: Player Green
+  '#FFD93D', // P4: Arcade Yellow
+  '#9D4EDD', // P5: Purple
+  '#FF9F43', // P6: Orange
+  '#FF85B3', // P7: Pink
+  '#00CFD6', // P8: Cyan
+];
+
 let disconnectTimeout: ReturnType<typeof setTimeout> | undefined;
 
 export default function Lobby() {
@@ -160,10 +171,15 @@ export default function Lobby() {
           Players ({totalPlayers})
         </h2>
         <div className="bg-white border-2 border-indigo-900 rounded-3xl w-full p-4 sm:p-6 flex flex-col gap-3 mb-4">
-          {peers.map((peer) => {
+          {peers.map((peer, index) => {
             const isMe = peer.id === userId;
+            const playerColor = PLAYER_COLORS[index % PLAYER_COLORS.length];
             return (
-              <div key={peer.id} className={`flex flex-row items-center justify-between border-2 rounded-xl p-3 px-4 transition-colors ${isMe ? 'border-indigo-900 border-[3px] bg-white' : 'border-indigo-900 bg-[#f0f2f5]'}`}>
+              <div 
+                key={peer.id} 
+                className={`flex flex-row items-center justify-between border-2 rounded-xl p-3 px-4 transition-colors ${isMe ? 'border-indigo-900 border-[3px]' : 'border-indigo-900'}`}
+                style={{ backgroundColor: playerColor }}
+              >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <span className="text-xl font-bold text-indigo-900 flex items-center min-w-0 w-full">
                     {peer.isHost && (
