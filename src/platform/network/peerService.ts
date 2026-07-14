@@ -8,7 +8,7 @@ type PeerMessage =
   | { type: 'ROSTER_UPDATE'; payload: PeerPlayer[] }
   | { type: 'START_GAME'; payload: { gameId: string } }
   | { type: 'END_GAME'; payload: null }
-  | { type: 'GAME_DATA'; payload: any };
+  | { type: 'GAME_DATA'; payload: unknown };
 
 class PeerService {
   private peer: Peer | null = null;
