@@ -20,7 +20,7 @@ function calculateWinner(squares: (string | null)[]): string | null {
   return null;
 }
 
-export default function TicTacToe({ sendDataToPeers, incomingData }: GameProps<TicTacToeData>) {
+export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: GameProps<TicTacToeData>) {
   const { isHost, peers } = useNetworkStore();
   const { userId } = useUser();
 
@@ -120,6 +120,33 @@ export default function TicTacToe({ sendDataToPeers, incomingData }: GameProps<T
     });
   };
 
+  const handleRestart = () => {
+    if (!isHost) return;
+    
+    const otherPeers = peers.filter(p => p.id !== userId);
+    if (otherPeers.length === 0) return;
+    
+    const guestId = otherPeers[0].id;
+    const allPlayers = [userId, guestId];
+    
+    const xPlayerId = Math.random() > 0.5 ? allPlayers[0] : allPlayers[1];
+    const oPlayerId = xPlayerId === allPlayers[0] ? allPlayers[1] : allPlayers[0];
+    const currentTurnId = Math.random() > 0.5 ? allPlayers[0] : allPlayers[1];
+
+    const newSync: TicTacToeData = {
+      type: 'SYNC',
+      board: Array(9).fill(null),
+      currentTurnId,
+      status: 'playing',
+      winnerId: null,
+      xPlayerId,
+      oPlayerId
+    };
+    
+    setGameState(newSync);
+    sendDataToPeers(newSync);
+  };
+
   // Handle incoming network data
   useEffect(() => {
     if (incomingData?.type === 'SYNC') {
@@ -131,14 +158,32 @@ export default function TicTacToe({ sendDataToPeers, incomingData }: GameProps<T
   }, [incomingData, isHost]);
 
   if (!gameState) {
+    return <div>Initializing Game...</div>;
+  }
+
+  // --- Win/Loss Screen ---
+  if (gameState.status === 'win') {
+    const isWinner = gameState.winnerId === userId;
+    
     return (
-      <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4">
-        <div className="text-xl font-bold animate-pulse">Initializing Game...</div>
+      <div>
+        <h1>
+          {isWinner ? 'You Won!' : 'You Lost'}
+        </h1>
+        
+        {isHost ? (
+          <div>
+            <button onClick={onGameEnd}>Quit</button>
+            <button onClick={handleRestart}>Restart</button>
+          </div>
+        ) : (
+          <div>Waiting for host to restart...</div>
+        )}
       </div>
     );
   }
 
-  // Game is initialized - derived state for UI
+  // --- Game Board Screen ---
   const getDisplayMark = (cellUserId: string | null): PlayerMark | null => {
     if (cellUserId === gameState.xPlayerId) return 'X';
     if (cellUserId === gameState.oPlayerId) return 'O';
@@ -149,10 +194,8 @@ export default function TicTacToe({ sendDataToPeers, incomingData }: GameProps<T
   const myMark = gameState.xPlayerId === userId ? 'X' : 'O';
 
   let statusText = '';
-  if (gameState.status === 'win') {
-    statusText = gameState.winnerId === userId ? 'You Won!' : 'You Lost!';
-  } else if (gameState.status === 'draw') {
-    statusText = 'Draw!';
+  if (gameState.status === 'draw') {
+    statusText = 'Draw!'; // Technically won't show because auto-restart is instant, but keeping just in case
   } else {
     statusText = amITurn ? `Your turn (${myMark})` : "Opponent's turn...";
   }
@@ -168,22 +211,19 @@ export default function TicTacToe({ sendDataToPeers, incomingData }: GameProps<T
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[100dvh] p-4">
-      <h1 className="text-4xl font-bold mb-4">TicTacToe</h1>
+    <div>
+      <h1>TicTacToe</h1>
       
-      <div className="mb-4 text-xl font-semibold">
-        {statusText}
-      </div>
+      <div>{statusText}</div>
       
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1 w-max">
         {gameState.board.map((cellUserId, index) => {
           const mark = getDisplayMark(cellUserId);
           return (
             <button
               key={index}
               onClick={() => handleClick(index)}
-              className="w-24 h-24 border-2 border-black flex items-center justify-center text-4xl cursor-pointer hover:bg-gray-100 disabled:bg-gray-50 disabled:cursor-not-allowed"
-              aria-label={`Cell ${index}`}
+              className="w-16 h-16 border border-black"
               disabled={!!cellUserId || gameState.status !== 'playing' || !amITurn}
             >
               {mark}
