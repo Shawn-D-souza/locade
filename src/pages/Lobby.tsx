@@ -14,7 +14,7 @@ let disconnectTimeout: ReturnType<typeof setTimeout> | undefined;
 export default function Lobby() {
   const { lobbyId } = useParams<{ lobbyId: string }>();
   const location = useLocation();
-  const { errorMessage, peers, isHost, gameState, activeGameId } = useNetworkStore();
+  const { errorMessage, peers, isHost, gameState, activeGameId, status } = useNetworkStore();
   const { userId } = useUser();
   const initialized = useRef(false);
   const currentUrl = window.location.href;
@@ -80,6 +80,17 @@ export default function Lobby() {
       handleCopy();
     }
   };
+
+  if (status === 'connecting') {
+    return (
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center p-4 font-mono">
+        <div className="flex flex-col items-center gap-6 text-indigo-900">
+          <div className="w-16 h-16 border-[6px] border-indigo-900/20 border-t-indigo-900 rounded-full animate-spin"></div>
+          <h2 className="text-xl font-black uppercase tracking-widest animate-pulse">Connecting...</h2>
+        </div>
+      </div>
+    );
+  }
 
   if (gameState === 'game' && activeGameId) {
     const ActiveGameComponent = GAME_REGISTRY[activeGameId]?.component;
