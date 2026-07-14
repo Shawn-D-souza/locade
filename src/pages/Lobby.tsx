@@ -27,7 +27,7 @@ export default function Lobby() {
   const location = useLocation();
   const { errorMessage, peers, isHost, gameState, activeGameId, status } = useNetworkStore();
   const { userId } = useUser();
-  const initialized = useRef(false);
+  const activeLobbyId = useRef<string | null>(null);
   const currentUrl = window.location.href;
 
   const totalPlayers = peers.length; 
@@ -47,22 +47,30 @@ export default function Lobby() {
   useEffect(() => {
     if (!lobbyId) return;
 
-    // Cancel pending disconnect if remounting instantly (React Strict Mode fix)
-    if (disconnectTimeout) {
-      clearTimeout(disconnectTimeout);
-      disconnectTimeout = undefined;
-    }
-
-    if (!initialized.current) {
-      initialized.current = true;
+    if (activeLobbyId.current !== lobbyId) {
+      // If changing lobbies, disconnect the old one
+      if (activeLobbyId.current !== null) {
+        peerService.disconnect();
+      }
       
-      // Default to guest if not explicitly started as host
-      const isHosting = location.state?.isHost === true;
+      if (disconnectTimeout) {
+        clearTimeout(disconnectTimeout);
+        disconnectTimeout = undefined;
+      }
 
+      activeLobbyId.current = lobbyId;
+      
+      const isHosting = location.state?.isHost === true;
       if (isHosting) {
         peerService.initializeHost(lobbyId);
       } else {
         peerService.joinLobby(lobbyId);
+      }
+    } else {
+      // Same lobbyId remounting (React Strict Mode fix)
+      if (disconnectTimeout) {
+        clearTimeout(disconnectTimeout);
+        disconnectTimeout = undefined;
       }
     }
 
@@ -70,7 +78,7 @@ export default function Lobby() {
       // Delay disconnect to gracefully handle Strict Mode remount cycles
       disconnectTimeout = setTimeout(() => {
         peerService.disconnect();
-        initialized.current = false;
+        activeLobbyId.current = null;
         disconnectTimeout = undefined;
       }, 150);
     };
