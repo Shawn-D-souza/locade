@@ -1,4 +1,5 @@
 import TicTacToe from './tictactoe/TicTacToe';
+import DotsClash from './dots-clash/DotsClash';
 
 export interface GameConfig {
   id: string;
@@ -15,5 +16,12 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     minPlayers: 2,
     maxPlayers: 2,
     component: TicTacToe,
+  },
+  'dots-clash': {
+    id: 'dots-clash',
+    name: 'Dots Clash',
+    minPlayers: 2,
+    maxPlayers: 8,
+    component: DotsClash,
   }
 };
