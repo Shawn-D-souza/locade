@@ -17,6 +17,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
     currentTurnId: string;
     status: GameStatus;
     winnerId: string | null;
+    isResolving: boolean;
   } | null>(null);
 
   const initialized = useRef(false);
@@ -50,10 +51,11 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
         turnCount: 0,
         currentTurnId: allPlayers[0].id,
         status: 'playing',
-        winnerId: null
+        winnerId: null,
+        isResolving: false
       };
 
-      setGameState(initialSync);
+      setGameState(initialSync as any);
       sendDataToPeers(initialSync);
     }
   }, [isHost, peers, userId, sendDataToPeers]);
@@ -82,16 +84,17 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
       turnCount: 0,
       currentTurnId: allPlayers[0].id,
       status: 'playing',
-      winnerId: null
+      winnerId: null,
+      isResolving: false
     };
 
-    setGameState(newSync);
+    setGameState(newSync as any);
     sendDataToPeers(newSync);
   };
 
   const processMove = (row: number, col: number, moveUserId: string) => {
     setGameState(currentState => {
-      if (!currentState || currentState.status !== 'playing' || currentState.currentTurnId !== moveUserId) {
+      if (!currentState || currentState.status !== 'playing' || currentState.currentTurnId !== moveUserId || currentState.isResolving) {
         return currentState;
       }
 
@@ -119,99 +122,11 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
       newBoard[row][col].dots += 1;
       newBoard[row][col].ownerId = moveUserId;
 
-      const rows = newBoard.length;
-      const cols = newBoard[0].length;
-      
-      let exploded = true;
-      let iterations = 0;
-      const maxIterations = 1000; // safety net for infinite loops
-      
-      while (exploded && iterations < maxIterations) {
-        exploded = false;
-        iterations++;
-        
-        const explodingCells: {r: number, c: number, ownerId: string}[] = [];
-        
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            if (newBoard[r][c].dots >= 4) {
-              explodingCells.push({ r, c, ownerId: newBoard[r][c].ownerId! });
-            }
-          }
-        }
-        
-        if (explodingCells.length > 0) {
-          exploded = true;
-          for (const { r, c, ownerId } of explodingCells) {
-            // Reset the exploding cell
-            newBoard[r][c].dots -= 4;
-            if (newBoard[r][c].dots === 0) {
-              newBoard[r][c].ownerId = null;
-            }
-            
-            // Distribute to neighbors with grid wrapping
-            const neighbors = [
-              [(r - 1 + rows) % rows, c], // Up
-              [(r + 1) % rows, c],        // Down
-              [r, (c - 1 + cols) % cols], // Left
-              [r, (c + 1) % cols]         // Right
-            ];
-            
-            for (const [nr, nc] of neighbors) {
-              newBoard[nr][nc].dots += 1;
-              newBoard[nr][nc].ownerId = ownerId; // Takes ownership instantly
-            }
-          }
-        }
-      }
-
-      const nextTurnCount = currentState.turnCount + 1;
-
-      // Check elimination and winning conditions
-      const playerDots: Record<string, number> = {};
-      currentState.players.forEach(p => { playerDots[p.id] = 0; });
-      
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          if (newBoard[r][c].ownerId) {
-            playerDots[newBoard[r][c].ownerId!] += 1;
-          }
-        }
-      }
-
-      const activePlayers = currentState.players.filter(p => {
-        // If everyone hasn't taken at least one turn, no one is eliminated
-        if (nextTurnCount < currentState.players.length) return true;
-        // Eliminated if 0 dots left on the board
-        return playerDots[p.id] > 0;
-      });
-
-      let status: GameStatus = currentState.status;
-      let winnerId = currentState.winnerId;
-
-      if (nextTurnCount >= currentState.players.length && activePlayers.length <= 1) {
-        status = 'win';
-        winnerId = activePlayers.length === 1 ? activePlayers[0].id : null;
-      }
-
-      let nextTurnIndex = (currentState.turnIndex + 1) % currentState.players.length;
-      
-      // Skip eliminated players
-      if (status === 'playing') {
-        while (!activePlayers.find(p => p.id === currentState.players[nextTurnIndex].id)) {
-          nextTurnIndex = (nextTurnIndex + 1) % currentState.players.length;
-        }
-      }
-      
       const nextState = {
         ...currentState,
         board: newBoard,
         spawns: nextSpawns,
-        turnIndex: nextTurnIndex,
-        turnCount: nextTurnCount,
-        currentTurnId: currentState.players[nextTurnIndex].id,
-        status,
-        winnerId
+        isResolving: true // Trigger animation chain
       };
 
       sendDataToPeers({
@@ -223,17 +138,125 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
     });
   };
 
+  // Chain Reaction Animation Effect
+  useEffect(() => {
+    if (!isHost || !gameState || gameState.status !== 'playing' || !gameState.isResolving) return;
+
+    const timer = setTimeout(() => {
+      setGameState(currentState => {
+        if (!currentState || currentState.status !== 'playing') return currentState;
+
+        const newBoard = currentState.board.map(r => r.map(c => ({ ...c })));
+        const rows = newBoard.length;
+        const cols = newBoard[0].length;
+        
+        const explodingCells: {r: number, c: number, ownerId: string}[] = [];
+        
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (newBoard[r][c].dots >= 4) {
+              explodingCells.push({ r, c, ownerId: newBoard[r][c].ownerId! });
+            }
+          }
+        }
+
+        if (explodingCells.length > 0) {
+          for (const { r, c, ownerId } of explodingCells) {
+            newBoard[r][c].dots -= 4;
+            if (newBoard[r][c].dots === 0) {
+              newBoard[r][c].ownerId = null;
+            }
+            
+            const neighbors = [
+              [(r - 1 + rows) % rows, c], // Up
+              [(r + 1) % rows, c],        // Down
+              [r, (c - 1 + cols) % cols], // Left
+              [r, (c + 1) % cols]         // Right
+            ];
+            
+            for (const [nr, nc] of neighbors) {
+              newBoard[nr][nc].dots += 1;
+              newBoard[nr][nc].ownerId = ownerId;
+            }
+          }
+        }
+
+        const hasMoreExplosions = newBoard.some(r => r.some(c => c.dots >= 4));
+
+        let status: GameStatus = currentState.status;
+        let winnerId = currentState.winnerId;
+        let nextTurnIndex = currentState.turnIndex;
+        let nextTurnCount = currentState.turnCount;
+        let isResolving = true;
+
+        if (!hasMoreExplosions) {
+          isResolving = false;
+          nextTurnCount = currentState.turnCount + 1;
+
+          const playerDots: Record<string, number> = {};
+          currentState.players.forEach(p => { playerDots[p.id] = 0; });
+          
+          for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+              if (newBoard[r][c].ownerId) {
+                playerDots[newBoard[r][c].ownerId!] += 1;
+              }
+            }
+          }
+
+          const activePlayers = currentState.players.filter(p => {
+            if (nextTurnCount < currentState.players.length) return true;
+            return playerDots[p.id] > 0;
+          });
+
+          if (nextTurnCount >= currentState.players.length && activePlayers.length <= 1) {
+            status = 'win';
+            winnerId = activePlayers.length === 1 ? activePlayers[0].id : null;
+          }
+
+          nextTurnIndex = (currentState.turnIndex + 1) % currentState.players.length;
+          
+          if (status === 'playing') {
+            while (!activePlayers.find(p => p.id === currentState.players[nextTurnIndex].id)) {
+              nextTurnIndex = (nextTurnIndex + 1) % currentState.players.length;
+            }
+          }
+        }
+
+        const nextState = {
+          ...currentState,
+          board: newBoard,
+          turnIndex: nextTurnIndex,
+          turnCount: nextTurnCount,
+          currentTurnId: currentState.players[nextTurnIndex].id,
+          status,
+          winnerId,
+          isResolving
+        };
+
+        sendDataToPeers({
+          type: 'SYNC',
+          ...nextState
+        });
+
+        return nextState;
+      });
+    }, 350); // Delay between explosion steps
+
+    return () => clearTimeout(timer);
+  }, [gameState?.isResolving, gameState?.board, isHost, sendDataToPeers]);
+
   useEffect(() => {
     if (incomingData?.type === 'SYNC') {
       const { type, ...state } = incomingData;
-      setGameState(state);
+      setGameState(state as any);
     } else if (incomingData?.type === 'MOVE' && isHost) {
       processMove(incomingData.row, incomingData.col, incomingData.userId);
     }
   }, [incomingData, isHost]);
 
   const handleClick = (row: number, col: number) => {
-    if (!gameState || gameState.status !== 'playing') return;
+    if (!gameState || gameState.status !== 'playing' || gameState.isResolving) return;
     const amITurn = gameState.currentTurnId === userId;
     if (!amITurn) return;
 
@@ -244,99 +267,126 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
     }
   };
 
-  const getPlayerColor = (id: string | null) => {
-    if (!id || !gameState) return 'transparent';
+  const getPlayerTheme = (id: string | null) => {
+    if (!id || !gameState) return { 
+      bg: 'bg-slate-50', 
+      dot: 'bg-slate-400', 
+      text: 'text-slate-600', 
+      pillBg: 'bg-slate-400',
+      cellRing: 'ring-slate-200'
+    };
     const idx = gameState.players.findIndex(p => p.id === id);
-    const colors = ['bg-indigo-500', 'bg-rose-500', 'bg-emerald-500', 'bg-amber-500'];
-    return colors[idx % colors.length] || 'bg-slate-500';
+    const themes = [
+      { bg: 'bg-indigo-100', dot: 'bg-indigo-500', text: 'text-indigo-600', pillBg: 'bg-indigo-600', cellRing: 'ring-indigo-200' },
+      { bg: 'bg-rose-100', dot: 'bg-rose-500', text: 'text-rose-600', pillBg: 'bg-rose-600', cellRing: 'ring-rose-200' },
+      { bg: 'bg-emerald-100', dot: 'bg-emerald-500', text: 'text-emerald-600', pillBg: 'bg-emerald-600', cellRing: 'ring-emerald-200' },
+      { bg: 'bg-amber-100', dot: 'bg-amber-500', text: 'text-amber-600', pillBg: 'bg-amber-600', cellRing: 'ring-amber-200' },
+    ];
+    return themes[idx % themes.length];
   };
 
   if (!gameState) {
     return (
-      <div className="flex flex-1 items-center justify-center w-full h-full min-h-[100dvh] bg-slate-50">
-        <div className="animate-pulse text-xl font-bold text-slate-500">Initializing Game...</div>
+      <div className="flex flex-1 items-center justify-center w-full h-full min-h-[100dvh] bg-slate-50 touch-none overflow-hidden">
+        <div className="animate-pulse text-2xl font-black uppercase text-indigo-900 tracking-widest">Initializing Game...</div>
       </div>
     );
   }
 
-  // --- Win Screen ---
+  // --- Win/Loss Screen ---
   if (gameState.status === 'win') {
     const isWinner = gameState.winnerId === userId;
+    const winnerTheme = getPlayerTheme(gameState.winnerId);
     
     return (
-      <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] bg-slate-50 p-4 font-sans select-none touch-none animate-in fade-in zoom-in duration-500`}>
-        <div className="bg-white p-8 sm:p-12 rounded-[2.5rem] shadow-2xl text-center max-w-md w-full border border-slate-200">
-          <h1 className={`text-5xl sm:text-6xl font-black mb-4 tracking-tight ${isWinner ? 'text-emerald-500' : 'text-rose-500'}`}>
-            {isWinner ? 'VICTORY!' : 'DEFEAT'}
+      <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] animate-in fade-in zoom-in duration-300 transition-colors duration-500 ${winnerTheme.bg} font-sans p-4 touch-none overflow-hidden`}>
+        <div className="text-center mb-10 bg-white shadow-2xl rounded-3xl p-8 sm:p-10 w-full max-w-[400px]">
+          <h1 className={`text-5xl sm:text-6xl font-black uppercase tracking-tight ${isWinner ? winnerTheme.text : 'text-slate-500'}`}>
+            {isWinner ? 'Victory!' : 'Defeat'}
           </h1>
-          <p className="text-slate-600 font-bold mb-10 text-lg">
+          <p className="text-slate-600 font-bold mt-4 text-lg uppercase tracking-wider">
             {isWinner ? 'You conquered the board!' : 'You have been eliminated.'}
           </p>
-          {isHost ? (
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button 
-                onClick={onGameEnd}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-2xl p-4 font-black text-xl transition-all shadow-sm hover:shadow-md active:scale-95"
-              >
-                Quit
-              </button>
-              <button 
-                onClick={handleRestart}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl p-4 font-black text-xl transition-all shadow-md hover:shadow-lg active:scale-95"
-              >
-                Play Again
-              </button>
-            </div>
-          ) : (
-            <div className="text-slate-400 font-black text-xl animate-pulse mt-4">
-              Waiting for Host...
-            </div>
-          )}
         </div>
+        
+        {isHost ? (
+          <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[400px]">
+            <button 
+              onClick={onGameEnd}
+              className="flex-1 bg-white text-slate-800 rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow hover:shadow-md hover:bg-slate-50 active:scale-95 transition-all"
+            >
+              Quit
+            </button>
+            <button 
+              onClick={handleRestart}
+              className={`flex-1 ${winnerTheme.pillBg} text-white rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow-md hover:shadow-lg active:scale-95 transition-all`}
+            >
+              Play Again
+            </button>
+          </div>
+        ) : (
+          <div className="text-slate-500 font-black text-xl uppercase animate-pulse mt-4 tracking-widest text-center">
+            Waiting for Host...
+          </div>
+        )}
       </div>
     );
   }
 
-  // --- Playing Screen ---
+  // --- Game Board Screen ---
   const amITurn = gameState.currentTurnId === userId;
   const mySpawns = gameState.spawns[userId] || 0;
+  const currentTurnTheme = getPlayerTheme(gameState.currentTurnId);
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] bg-slate-50 p-4 font-sans select-none touch-none">
-      <div className="mb-6 flex flex-col items-center gap-2">
-        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Dots Clash</h1>
-        <div className={`px-6 py-2 rounded-full font-bold text-white shadow-md transition-colors duration-300
-          ${amITurn ? 'bg-indigo-600 ring-4 ring-indigo-200' : 'bg-slate-400'}`}>
-          {amITurn ? 'Your Turn' : "Waiting for Opponent..."}
+    <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] select-none transition-colors duration-500 font-sans ${currentTurnTheme.bg} p-4 touch-none overflow-hidden`}>
+      {/* Header section */}
+      <div className="mb-8 flex flex-col items-center justify-center space-y-3">
+        <div className={`px-8 py-3 rounded-full font-black text-lg uppercase transition-all duration-300 shadow-sm flex items-center gap-3
+          ${amITurn ? `${currentTurnTheme.pillBg} text-white ring-4 ${currentTurnTheme.cellRing}` : 'bg-slate-300 text-slate-500 scale-95'}
+        `}>
+          {amITurn ? 'Your turn' : "Opponent's turn"}
         </div>
-        <div className="text-sm font-bold text-slate-600 bg-white px-4 py-1 rounded-full shadow-sm border border-slate-200 mt-2">
-          Spawns Remaining: <span className="text-indigo-600 text-base">{mySpawns}</span>
-        </div>
+        {mySpawns > 0 && (
+          <div className="px-5 py-2 bg-white/80 backdrop-blur rounded-xl font-bold text-slate-700 shadow-sm border border-slate-100 uppercase tracking-widest text-sm">
+            Spawns: <span className={getPlayerTheme(userId).text}>{mySpawns}</span>
+          </div>
+        )}
       </div>
       
-      <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-6 rounded-3xl shadow-xl border border-slate-200">
-        <div className="flex flex-col gap-2">
+      {/* Board */}
+      <div className="bg-white/60 backdrop-blur-md shadow-2xl p-4 sm:p-6 rounded-[2.5rem]">
+        <div className="flex flex-col gap-2 sm:gap-3">
           {gameState.board.map((row, rIndex) => (
-            <div key={rIndex} className="flex gap-2">
+            <div key={rIndex} className="flex gap-2 sm:gap-3">
               {row.map((cell, cIndex) => {
-                const dotColor = getPlayerColor(cell.ownerId);
+                const cellTheme = getPlayerTheme(cell.ownerId);
                 const isMyCell = cell.ownerId === userId;
-                const canSpawn = cell.dots === 0 && mySpawns > 0;
+                const isEmpty = cell.dots === 0;
+                const canSpawn = isEmpty && mySpawns > 0;
                 const canMove = amITurn && (isMyCell || canSpawn);
                 
+                // Pure clean modern button style, no thick 3D translate borders
+                const isInteractive = canMove;
+                const interactiveClasses = isInteractive 
+                  ? `bg-white hover:bg-slate-50 active:scale-90 cursor-pointer shadow-sm hover:shadow-md ring-2 ${cellTheme.cellRing}` 
+                  : `bg-white/70 cursor-default opacity-90 ring-1 ring-slate-200`;
+                  
                 return (
-                  <button 
+                  <button
                     key={cIndex}
                     onClick={() => handleClick(rIndex, cIndex)}
                     disabled={!canMove}
-                    className={`w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center relative transition-all duration-200
-                      ${cell.dots === 0 ? 'bg-slate-50 hover:bg-slate-100 border-2 border-slate-200' : 'bg-slate-100/50 border-2 border-slate-300 shadow-inner'}
-                      ${canMove && amITurn ? 'cursor-pointer hover:border-indigo-400 hover:scale-105 active:scale-95' : 'cursor-default opacity-80'}
-                    `}
+                    className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center transition-all duration-200 ${interactiveClasses} relative overflow-hidden`}
                   >
                     {cell.dots > 0 && (
-                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${dotColor} flex items-center justify-center text-white font-black shadow-md transform transition-all animate-in zoom-in spin-in-12`}>
-                        {cell.dots}
+                      <div className="absolute inset-0 flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap p-1.5 sm:p-2 pointer-events-none">
+                        {Array.from({ length: cell.dots }).map((_, i) => (
+                          <div 
+                            key={i} 
+                            className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full ${cellTheme.dot} shadow-sm transform transition-all animate-in zoom-in duration-300`}
+                          />
+                        ))}
                       </div>
                     )}
                   </button>

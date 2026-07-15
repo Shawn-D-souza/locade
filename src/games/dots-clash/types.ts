@@ -26,6 +26,7 @@ export type DotsClashData =
       currentTurnId: string;
       status: GameStatus;
       winnerId: string | null;
+      isResolving: boolean;
     }
   | {
       // Sent by the guest (or host locally) to request a move.
