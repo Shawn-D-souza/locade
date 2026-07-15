@@ -290,7 +290,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
 
   if (!gameState) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-50 touch-none overflow-hidden">
+      <div className="fixed top-0 left-0 w-screen h-[100dvh] z-50 flex flex-col items-center justify-center bg-slate-50 touch-none overflow-hidden">
         <div className="animate-pulse text-2xl font-black uppercase text-indigo-900 tracking-widest">Initializing Game...</div>
       </div>
     );
@@ -302,7 +302,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
     const winnerTheme = getPlayerTheme(gameState.winnerId);
     
     return (
-      <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300 transition-colors duration-500 ${winnerTheme.bg} font-sans p-4 touch-none overflow-hidden`}>
+      <div className={`fixed top-0 left-0 w-screen h-[100dvh] z-50 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300 transition-colors duration-500 ${winnerTheme.bg} font-sans p-4 touch-none overflow-hidden`}>
         <div className="text-center mb-10 bg-white shadow-2xl rounded-3xl p-8 sm:p-10 w-full max-w-[400px]">
           <h1 className={`text-5xl sm:text-6xl font-black uppercase tracking-tight ${isWinner ? winnerTheme.text : 'text-slate-500'}`}>
             {isWinner ? 'Victory!' : 'Defeat'}
@@ -342,7 +342,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
   const currentTurnTheme = getPlayerTheme(gameState.currentTurnId);
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center select-none transition-colors duration-500 font-sans ${currentTurnTheme.bg} p-4 touch-none overflow-hidden`}>
+    <div className={`fixed top-0 left-0 w-screen h-[100dvh] z-50 flex flex-col items-center justify-center select-none transition-colors duration-500 font-sans ${currentTurnTheme.bg} p-4 touch-none overflow-hidden`}>
       {/* Header section */}
       <div className="mb-8 flex flex-col items-center justify-center space-y-3">
         <div className={`px-8 py-3 rounded-full font-black text-lg uppercase transition-all duration-300 shadow-sm flex items-center gap-3
