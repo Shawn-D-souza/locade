@@ -189,33 +189,36 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
         let nextTurnCount = currentState.turnCount;
         let isResolving = true;
 
-        if (!hasMoreExplosions) {
-          isResolving = false;
-          nextTurnCount = currentState.turnCount + 1;
-
-          const playerDots: Record<string, number> = {};
-          currentState.players.forEach(p => { playerDots[p.id] = 0; });
-          
-          for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-              if (newBoard[r][c].ownerId) {
-                playerDots[newBoard[r][c].ownerId!] += 1;
-              }
+        // Check for win condition even during explosions to prevent infinite loops
+        const playerDots: Record<string, number> = {};
+        currentState.players.forEach(p => { playerDots[p.id] = 0; });
+        
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (newBoard[r][c].ownerId) {
+              playerDots[newBoard[r][c].ownerId!] += 1;
             }
           }
+        }
 
-          const activePlayers = currentState.players.filter(p => {
-            if (nextTurnCount < currentState.players.length) return true;
-            return playerDots[p.id] > 0;
-          });
+        const effectiveTurnCount = currentState.turnCount + 1;
+        const activePlayers = currentState.players.filter(p => {
+          if (effectiveTurnCount < currentState.players.length) return true;
+          return playerDots[p.id] > 0;
+        });
 
-          if (nextTurnCount >= currentState.players.length && activePlayers.length <= 1) {
-            status = 'win';
-            winnerId = activePlayers.length === 1 ? activePlayers[0].id : null;
-          }
+        const isGameOver = effectiveTurnCount >= currentState.players.length && activePlayers.length <= 1;
+
+        if (isGameOver) {
+          status = 'win';
+          winnerId = activePlayers.length === 1 ? activePlayers[0].id : null;
+          isResolving = false; // Stop explosions immediately
+          nextTurnCount = effectiveTurnCount;
+        } else if (!hasMoreExplosions) {
+          isResolving = false;
+          nextTurnCount = effectiveTurnCount;
 
           nextTurnIndex = (currentState.turnIndex + 1) % currentState.players.length;
-          
           if (status === 'playing') {
             while (!activePlayers.find(p => p.id === currentState.players[nextTurnIndex].id)) {
               nextTurnIndex = (nextTurnIndex + 1) % currentState.players.length;
@@ -287,7 +290,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
 
   if (!gameState) {
     return (
-      <div className="flex flex-1 items-center justify-center w-full h-full min-h-[100dvh] bg-slate-50 touch-none overflow-hidden">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-50 touch-none overflow-hidden">
         <div className="animate-pulse text-2xl font-black uppercase text-indigo-900 tracking-widest">Initializing Game...</div>
       </div>
     );
@@ -299,7 +302,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
     const winnerTheme = getPlayerTheme(gameState.winnerId);
     
     return (
-      <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] animate-in fade-in zoom-in duration-300 transition-colors duration-500 ${winnerTheme.bg} font-sans p-4 touch-none overflow-hidden`}>
+      <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300 transition-colors duration-500 ${winnerTheme.bg} font-sans p-4 touch-none overflow-hidden`}>
         <div className="text-center mb-10 bg-white shadow-2xl rounded-3xl p-8 sm:p-10 w-full max-w-[400px]">
           <h1 className={`text-5xl sm:text-6xl font-black uppercase tracking-tight ${isWinner ? winnerTheme.text : 'text-slate-500'}`}>
             {isWinner ? 'Victory!' : 'Defeat'}
@@ -339,7 +342,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
   const currentTurnTheme = getPlayerTheme(gameState.currentTurnId);
 
   return (
-    <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] select-none transition-colors duration-500 font-sans ${currentTurnTheme.bg} p-4 touch-none overflow-hidden`}>
+    <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center select-none transition-colors duration-500 font-sans ${currentTurnTheme.bg} p-4 touch-none overflow-hidden`}>
       {/* Header section */}
       <div className="mb-8 flex flex-col items-center justify-center space-y-3">
         <div className={`px-8 py-3 rounded-full font-black text-lg uppercase transition-all duration-300 shadow-sm flex items-center gap-3
