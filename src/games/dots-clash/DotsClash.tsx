@@ -3,6 +3,7 @@ import type { GameProps } from '../GameProps';
 import type { DotsClashData, CellState, GameStatus } from './types';
 import { useNetworkStore } from '../../platform/store/useNetworkStore';
 import { useUser } from '../../platform/store/useUserStore';
+import { ExitButton } from '../components/ExitButton';
 
 export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: GameProps<DotsClashData>) {
   const { isHost, peers } = useNetworkStore();
@@ -342,7 +343,8 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
   const currentTurnTheme = getPlayerTheme(gameState.currentTurnId);
 
   return (
-    <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] select-none transition-colors duration-500 font-sans ${currentTurnTheme.bg} p-4 touch-none overflow-hidden`}>
+    <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] select-none transition-colors duration-500 font-sans ${currentTurnTheme.bg} p-4 touch-none overflow-hidden relative`}>
+      {isHost && <ExitButton onExit={onGameEnd} />}
       {/* Header section */}
       <div className="mb-8 flex flex-col items-center justify-center space-y-3">
         <div className={`px-8 py-3 rounded-full font-black text-lg uppercase transition-all duration-300 shadow-sm flex items-center gap-3

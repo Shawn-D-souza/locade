@@ -3,6 +3,7 @@ import type { GameProps } from '../GameProps';
 import type { TicTacToeData, PlayerMark, GameStatus } from './types';
 import { useNetworkStore } from '../../platform/store/useNetworkStore';
 import { useUser } from '../../platform/store/useUserStore';
+import { ExitButton } from '../components/ExitButton';
 
 // Helper function to check for a winner (now uses player IDs)
 function calculateWinner(squares: (string | null)[]): string | null {
@@ -256,7 +257,8 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
   const bgClass = currentTurnColor === 'red' ? 'bg-red-100' : 'bg-indigo-100';
 
   return (
-    <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] select-none transition-colors duration-500 font-mono ${bgClass} p-4 touch-none overflow-hidden`}>
+    <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] select-none transition-colors duration-500 font-mono ${bgClass} p-4 touch-none overflow-hidden relative`}>
+      {isHost && <ExitButton onExit={onGameEnd} />}
       {/* Header section */}
       <div className="mb-10 flex flex-col items-center justify-center space-y-2">
         <div className={`px-8 py-4 rounded-2xl font-black text-xl uppercase transition-colors duration-300 shadow-lg
