@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .env
+
+# Design assets — local-only, not committed
+design-assets/
