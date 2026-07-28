@@ -1,6 +1,7 @@
 import TicTacToe from './tictactoe/TicTacToe';
 import DotsClash from './dots-clash/DotsClash';
 import tictactoeThumb from '../assets/thumbnails/tictactoe.png';
+import dotsClashThumb from '../assets/thumbnails/dotsclash.png';
 
 export interface GameConfig {
   id: string;
@@ -26,5 +27,6 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     minPlayers: 2,
     maxPlayers: 8,
     component: DotsClash,
+    thumbnailUrl: dotsClashThumb,
   }
 };
