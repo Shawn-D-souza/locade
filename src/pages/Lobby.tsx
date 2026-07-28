@@ -228,29 +228,33 @@ export default function Lobby() {
                 const canStartGame = hasEnoughPlayers && !hasTooManyPlayers;
 
                 return (
-                  <div 
-                    key={game.id} 
-                    onClick={() => canStartGame && handleStartGame(game.id)}
-                    className={`relative border-4 border-indigo-900 rounded-2xl overflow-hidden aspect-square flex flex-col group ${canStartGame ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg transition-transform' : 'cursor-not-allowed opacity-75'}`}
-                  >
-                    <div className={`w-full h-full flex items-center justify-center bg-[#f0f2f5] transition-opacity pb-8 ${canStartGame ? 'group-active:opacity-80' : 'grayscale opacity-50'}`}>
-                      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #312e81 1px, transparent 0)', backgroundSize: '12px 12px' }}></div>
-                      <span className="text-[4rem] font-black text-indigo-900/20 uppercase tracking-tighter relative z-10">
-                        {game.name.substring(0, 2)}
-                      </span>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-white text-indigo-900 border-t-4 border-indigo-900 p-2 text-center font-black uppercase text-sm tracking-[1px] leading-tight flex items-center justify-center min-h-[48px]">
-                      {game.name}
-                    </div>
-
-                    {!canStartGame && (
-                      <div className="absolute inset-0 mb-12 bg-slate-900/40 flex items-center justify-center backdrop-blur-[2px]">
-                        <span className="bg-white text-indigo-900 font-black px-2 py-1 rounded text-xs uppercase border-2 border-indigo-900">
-                          {hasTooManyPlayers ? 'Max Reached' : `Need ${game.minPlayers - totalPlayers}`}
-                        </span>
+                    <div 
+                      key={game.id} 
+                      onClick={() => canStartGame && handleStartGame(game.id)}
+                      className={`relative border-4 border-indigo-900 rounded-2xl overflow-hidden aspect-square flex flex-col group ${canStartGame ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg transition-transform' : 'cursor-not-allowed opacity-75'}`}
+                    >
+                      <div className={`absolute inset-0 flex items-center justify-center bg-[#f0f2f5] transition-opacity ${canStartGame ? 'group-active:opacity-80' : 'grayscale opacity-50'}`}>
+                        {game.thumbnailUrl ? (
+                          <img src={game.thumbnailUrl} alt={game.name} className="w-full h-full object-cover relative z-10" />
+                        ) : (
+                          <>
+                            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #312e81 1px, transparent 0)', backgroundSize: '12px 12px' }}></div>
+                            <span className="text-[4rem] font-black text-indigo-900/20 uppercase tracking-tighter relative z-10">
+                              {game.name.substring(0, 2)}
+                            </span>
+                          </>
+                        )}
+                        
+                        {/* Overlay for unplayable games */}
+                        {!canStartGame && (
+                          <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center backdrop-blur-[2px] z-20">
+                            <span className="bg-white text-indigo-900 font-black px-2 py-1 rounded text-xs uppercase border-2 border-indigo-900 shadow-md">
+                              {hasTooManyPlayers ? 'Max Reached' : `Need ${game.minPlayers - totalPlayers}`}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
                 );
               })}
             </div>
