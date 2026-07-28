@@ -343,7 +343,9 @@ function render(ctx: CanvasRenderingContext2D, state: GameState, isGuest: boolea
   // Table border
   ctx.strokeStyle = '#000000';
   ctx.lineWidth = 2;
-  ctx.strokeRect(1, 1, TABLE_WIDTH - 2, TABLE_HEIGHT - 2);
+  ctx.beginPath();
+  ctx.roundRect(1, 1, TABLE_WIDTH - 2, TABLE_HEIGHT - 2, 12);
+  ctx.stroke();
 
   // Goals
   const goalLeft = (TABLE_WIDTH - GOAL_WIDTH) / 2;
@@ -376,25 +378,55 @@ function render(ctx: CanvasRenderingContext2D, state: GameState, isGuest: boolea
   ctx.stroke();
 
   // Paddles
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = 2;
   for (let i = 0; i < 2; i++) {
     const paddle = state.paddles[i];
+
+    // Base paddle
     ctx.beginPath();
     ctx.arc(paddle.pos.x, paddle.pos.y, PADDLE_RADIUS, 0, Math.PI * 2);
-    // Guest (0) is Rose, Host (1) is Indigo
     ctx.fillStyle = i === 0 ? '#f43f5e' : '#6366f1'; 
     ctx.fill();
+    
+    // Glossy outer rim
+    ctx.beginPath();
+    ctx.arc(paddle.pos.x, paddle.pos.y, PADDLE_RADIUS, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Inner handle
+    ctx.beginPath();
+    ctx.arc(paddle.pos.x, paddle.pos.y, PADDLE_RADIUS * 0.45, 0, Math.PI * 2);
+    ctx.fillStyle = i === 0 ? '#be123c' : '#4338ca'; // Darker shades
+    ctx.fill();
+
+    // Inner handle glossy ring
+    ctx.beginPath();
+    ctx.arc(paddle.pos.x, paddle.pos.y, PADDLE_RADIUS * 0.45, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
     ctx.stroke();
   }
 
   // Puck
+  // Outer base
   ctx.beginPath();
   ctx.arc(state.puck.pos.x, state.puck.pos.y, PUCK_RADIUS, 0, Math.PI * 2);
-  ctx.fillStyle = '#666666';
+  ctx.fillStyle = '#64748b'; // slate-500 - medium gray
   ctx.fill();
-  ctx.strokeStyle = '#000000';
+
+  // Subtle outer rim
+  ctx.beginPath();
+  ctx.arc(state.puck.pos.x, state.puck.pos.y, PUCK_RADIUS, 0, Math.PI * 2);
+  ctx.strokeStyle = '#475569'; // slate-600
   ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Inner groove
+  ctx.beginPath();
+  ctx.arc(state.puck.pos.x, state.puck.pos.y, PUCK_RADIUS * 0.5, 0, Math.PI * 2);
+  ctx.strokeStyle = '#94a3b8'; // slate-400
+  ctx.lineWidth = 3;
   ctx.stroke();
 
   ctx.restore();
@@ -700,24 +732,29 @@ export default function AirHockey({ sendDataToPeers, incomingData, onGameEnd }: 
   };
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full min-h-[100dvh] bg-slate-900 touch-none font-sans overflow-hidden relative">
+    <div className="flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] bg-slate-100 select-none font-sans p-4 touch-none overflow-hidden relative">
       {isHost && <ExitButton onExit={onGameEnd} />}
-      <div className="flex items-center gap-4 text-slate-400 mb-4 tracking-widest uppercase font-bold text-sm">
-        <span className={isHost ? "text-indigo-400" : "text-rose-400"}>{userName}</span>
+      <div className="flex items-center gap-4 text-slate-500 mb-6 tracking-widest uppercase font-bold text-sm sm:text-base">
+        <span className={isHost ? "text-indigo-500" : "text-rose-500"}>{userName}</span>
         <span className="opacity-50">VS</span>
-        <span className={!isHost ? "text-indigo-400" : "text-rose-400"}>{opponentName}</span>
+        <span className={!isHost ? "text-indigo-500" : "text-rose-500"}>{opponentName}</span>
       </div>
+      
       <canvas
         ref={canvasRef}
         width={TABLE_WIDTH}
         height={TABLE_HEIGHT}
-        style={{ touchAction: 'none' }}
-        className="bg-white rounded-xl shadow-2xl"
+        style={{ 
+          touchAction: 'none',
+          maxWidth: '100%',
+          maxHeight: 'calc(100dvh - 120px)'
+        }}
+        className="bg-white rounded-xl shadow-2xl shrink-0"
       />
 
       {winState && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="text-center mb-10 bg-white shadow-2xl rounded-3xl p-8 sm:p-10 w-full max-w-[400px]">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-100 p-4 animate-in fade-in duration-300">
+          <div className="text-center mb-10 bg-white shadow-xl rounded-3xl p-8 sm:p-10 w-full max-w-[400px]">
             <h1 className={`text-5xl sm:text-6xl font-black uppercase tracking-tight ${winState.winnerIdx === myPaddleIdx ? 'text-emerald-500' : 'text-red-500'}`}>
               {winState.winnerIdx === myPaddleIdx ? 'Victory!' : 'Defeat'}
             </h1>
@@ -730,19 +767,19 @@ export default function AirHockey({ sendDataToPeers, incomingData, onGameEnd }: 
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[400px]">
               <button 
                 onClick={onGameEnd}
-                className="flex-1 bg-slate-100 text-indigo-900 rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow-md hover:shadow-lg hover:bg-slate-200 active:scale-95 transition-all"
+                className="flex-1 bg-white text-slate-800 rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow-sm border border-slate-200 hover:shadow-md hover:bg-slate-50 active:scale-95 transition-all"
               >
                 Quit
               </button>
               <button 
                 onClick={handleRestart}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow-md hover:shadow-lg active:scale-95 transition-all"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow hover:shadow-md active:scale-95 transition-all"
               >
                 Play Again
               </button>
             </div>
           ) : (
-            <div className="text-white/80 font-black text-xl uppercase animate-pulse mt-4 tracking-widest text-center">
+            <div className="text-slate-500 font-black text-xl uppercase animate-pulse mt-4 tracking-widest text-center">
               Waiting for Host...
             </div>
           )}
