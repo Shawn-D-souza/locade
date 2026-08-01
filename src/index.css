@@ -15,7 +15,7 @@
     background-position: 0 0;
     
     font-family: var(--font-mono);
-    min-height: 100vh;
+    min-height: var(--app-height, 100dvh);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 

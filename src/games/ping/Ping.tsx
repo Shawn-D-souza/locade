@@ -46,7 +46,7 @@ export default function Ping({ sendDataToPeers, incomingData, onGameEnd }: GameP
   };
 
   return (
-    <div className="flex flex-col justify-center items-stretch gap-6 w-full min-h-[100dvh] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono">
+    <div className="flex flex-col justify-center items-stretch gap-6 w-full min-h-[var(--app-height,100dvh)] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono">
       {/* Header */}
       <div className="flex flex-col items-center gap-1 mb-2">
         <h1 className="text-4xl md:text-[2.5rem] font-black uppercase text-center text-indigo-900 tracking-[-1.5px]">

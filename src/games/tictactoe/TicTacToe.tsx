@@ -182,7 +182,7 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
 
   if (!gameState) {
     return (
-      <div className="flex flex-1 items-center justify-center w-full h-full min-h-[100dvh] bg-slate-50 touch-none overflow-hidden">
+      <div className="flex flex-1 items-center justify-center w-full h-full min-h-[var(--app-height,100dvh)] bg-slate-50 touch-none overflow-hidden">
         <div className="animate-pulse text-2xl font-black uppercase text-indigo-900 tracking-widest">Initializing Game...</div>
       </div>
     );
@@ -195,7 +195,7 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
     const bgClass = winnerColor === 'red' ? 'bg-red-100' : 'bg-indigo-100';
     
     return (
-      <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] animate-in fade-in zoom-in duration-300 transition-colors duration-500 ${bgClass} font-mono p-4 touch-none overflow-hidden`}>
+      <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[var(--app-height,100dvh)] animate-in fade-in zoom-in duration-300 transition-colors duration-500 ${bgClass} font-mono p-4 touch-none overflow-hidden`}>
         <div className="text-center mb-10 bg-white shadow-2xl rounded-3xl p-8 sm:p-10 w-full max-w-[400px]">
           <h1 className={`text-6xl sm:text-7xl font-black uppercase tracking-tight ${isWinner ? 'text-emerald-500' : 'text-red-500'}`}>
             {isWinner ? 'Victory!' : 'Defeat'}
@@ -257,7 +257,7 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
   const bgClass = currentTurnColor === 'red' ? 'bg-red-100' : 'bg-indigo-100';
 
   return (
-    <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[100dvh] select-none transition-colors duration-500 font-mono ${bgClass} p-4 touch-none overflow-hidden relative`}>
+    <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[var(--app-height,100dvh)] select-none transition-colors duration-500 font-mono ${bgClass} p-4 touch-none overflow-hidden relative`}>
       {isHost && <ExitButton onExit={onGameEnd} />}
       {/* Header section */}
       <div className="mb-10 flex flex-col items-center justify-center space-y-2">
