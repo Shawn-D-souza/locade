@@ -732,7 +732,7 @@ export default function AirHockey({ sendDataToPeers, incomingData, onGameEnd }: 
   };
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center w-full h-full min-h-[var(--app-height,100dvh)] bg-slate-100 select-none font-sans p-4 touch-none overflow-hidden relative">
+    <div className="flex flex-1 flex-col items-center justify-center w-full h-full min-h-[var(--app-height,100dvh)] bg-slate-100 font-sans p-4 relative">
       {isHost && <ExitButton onExit={onGameEnd} />}
       <div className="flex items-center gap-4 text-slate-500 mb-6 tracking-widest uppercase font-bold text-sm sm:text-base">
         <span className={isHost ? "text-indigo-500" : "text-rose-500"}>{userName}</span>

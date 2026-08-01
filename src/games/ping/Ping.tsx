@@ -61,7 +61,7 @@ export default function Ping({ sendDataToPeers, incomingData, onGameEnd }: GameP
           <h2 className="text-xl font-bold text-slate-500 uppercase tracking-widest mb-2 text-center">Players</h2>
           {allPlayers.map((player) => (
             <div key={player.id} className="bg-[#f0f2f5] border-[3px] border-indigo-900 rounded-2xl p-4 w-full flex items-center justify-between">
-              <div className="flex items-center gap-3 overflow-hidden">
+              <div className="flex items-center gap-3">
                 <div className="bg-indigo-100 p-2 rounded-full border-2 border-indigo-900 shrink-0">
                   <UserIcon className="w-5 h-5 text-indigo-900" strokeWidth={2.5} />
                 </div>

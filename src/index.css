@@ -19,10 +19,15 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 
-    /* Professional game optimizations */
+    /* ── Global game-platform rules ──────────────────────────────────────
+       These apply everywhere by default. Override on a specific element
+       when a game or UI actually needs scrolling / touch / selection.
+       e.g. a scrollable list → add class: overflow-y-auto touch-auto     */
     -webkit-user-select: none;
     user-select: none;
-    overscroll-behavior-y: none;
+    overscroll-behavior: none;   /* x + y – stops rubber-band on all axes */
+    overflow: hidden;            /* no accidental page scroll              */
+    touch-action: none;          /* disables pinch-zoom, swipe-back, etc.  */
   }
 
   @media (min-width: 1024px) {
