@@ -123,7 +123,7 @@ export default function Lobby() {
 
   if (status === 'connecting') {
     return (
-      <div className="min-h-[var(--app-height,100dvh)] flex flex-col items-center justify-center p-4 font-mono gap-6">
+      <div className="h-[var(--app-height,100dvh)] flex flex-col items-center justify-center p-4 font-mono gap-6 overflow-y-auto touch-auto">
         <div className="flex flex-col items-center gap-6 text-indigo-900">
           <div className="w-16 h-16 border-[6px] border-indigo-900/20 border-t-indigo-900 rounded-full animate-spin"></div>
           <h2 className="text-xl font-black uppercase tracking-widest animate-pulse">Connecting...</h2>
@@ -155,7 +155,7 @@ export default function Lobby() {
   return (
     <>
       <InterruptionModal />
-      <div className="flex flex-col justify-start items-stretch gap-0 w-full min-h-[var(--app-height,100dvh)] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono pt-4 sm:pt-8 pb-20">
+      <div className="flex flex-col justify-start items-stretch gap-0 w-full h-[var(--app-height,100dvh)] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono pt-4 sm:pt-8 pb-20 overflow-y-auto touch-auto">
 
         {/* Header with Back Button */}
         <div className="relative flex items-center justify-center w-full mt-0 pt-0 mb-4 sm:mb-6">

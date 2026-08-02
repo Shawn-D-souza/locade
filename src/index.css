@@ -35,4 +35,15 @@
       background-size: 26px 26px;
     }
   }
+
+  /* ── Hide scrollbars globally ─────────────────────────────────────────
+     Scrolling still works — the bar is just invisible. Applies to every
+     element that becomes scrollable (overflow-y-auto etc.)              */
+  * {
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE / Edge legacy */
+  }
+  *::-webkit-scrollbar {
+    display: none;                /* Chrome / Safari / WebKit */
+  }
 }
