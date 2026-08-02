@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { peerService } from '../platform/network/peerService';
 import { useNetworkStore } from '../platform/store/useNetworkStore';
@@ -8,6 +8,8 @@ import GameShell from '../features/game-shell/GameShell';
 import { useUser } from '../platform/store/useUserStore';
 import { Copy, Share2, AlertCircle, ArrowLeft } from 'lucide-react';
 import InterruptionModal from '../components/InterruptionModal';
+import LobbyEntrySplash from '../components/LobbyEntrySplash';
+import { lobbyAudioManager } from '../platform/audio/lobbyAudioManager';
 
 const PLAYER_COLORS = [
   '#FF6B6B', // P1: Action Red
@@ -31,7 +33,34 @@ export default function Lobby() {
   const activeLobbyId = useRef<string | null>(null);
   const currentUrl = window.location.href;
 
+  // Track if we need the arcade direct entry splash (for fresh QR/URL joins without previous user gesture)
+  const isDirectJoin = !location.state?.userUnlocked && !lobbyAudioManager.isUnlocked();
+  const [showEntrySplash, setShowEntrySplash] = useState(isDirectJoin);
+
   const totalPlayers = peers.length;
+
+  // Background Music & Audio Sync Lifecycle Management
+  useEffect(() => {
+    // If not waiting on direct-entry splash and in lobby state, smoothly fade music in
+    if (!showEntrySplash && gameState === 'lobby' && status !== 'connecting') {
+      lobbyAudioManager.play({ fadeInDuration: 5000 });
+      if (isHost) {
+        peerService.startAudioSync();
+      }
+    } else if (gameState === 'game') {
+      // Fade music out when entering an active game
+      lobbyAudioManager.stop({ fadeOutDuration: 4000 });
+      if (isHost) {
+        peerService.stopAudioSync();
+      }
+    }
+
+    return () => {
+      // Fade music out if leaving lobby
+      lobbyAudioManager.stop({ fadeOutDuration: 2500 });
+      peerService.stopAudioSync();
+    };
+  }, [showEntrySplash, gameState, status, isHost]);
 
   // Professional Navigation: Ensure direct entry (e.g. via URL / QR / APK) has Home in history stack
   useEffect(() => {
@@ -48,6 +77,7 @@ export default function Lobby() {
   }, []);
 
   const handleLeaveLobby = () => {
+    lobbyAudioManager.stop({ fadeOutDuration: 2500 });
     peerService.disconnect();
     resetNetwork();
     navigate('/');
@@ -154,6 +184,9 @@ export default function Lobby() {
 
   return (
     <>
+      {showEntrySplash && lobbyId && (
+        <LobbyEntrySplash lobbyId={lobbyId} onEnter={() => setShowEntrySplash(false)} />
+      )}
       <InterruptionModal />
       <div className="flex flex-col justify-start items-stretch gap-0 w-full h-[var(--app-height,100dvh)] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono pt-4 sm:pt-8 pb-20 overflow-y-auto touch-auto">
 

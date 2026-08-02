@@ -1,6 +1,7 @@
 import { Peer, type DataConnection } from 'peerjs';
 import { useNetworkStore, type PeerPlayer } from '../store/useNetworkStore';
 import { useUser } from '../store/useUserStore';
+import { lobbyAudioManager } from '../audio/lobbyAudioManager';
 
 // Strict typing for network data payloads
 type PeerMessage =
@@ -8,12 +9,14 @@ type PeerMessage =
   | { type: 'ROSTER_UPDATE'; payload: PeerPlayer[] }
   | { type: 'START_GAME'; payload: { gameId: string } }
   | { type: 'END_GAME'; payload: null }
+  | { type: 'AUDIO_SYNC'; payload: { trackPosition: number } }
   | { type: 'GAME_DATA'; payload: unknown };
 
 class PeerService {
   private peer: Peer | null = null;
   private connections: Map<string, DataConnection> = new Map();
   private hostConnection: DataConnection | null = null;
+  private audioSyncInterval: number | null = null;
 
   // Helper to generate the unique namespace key
   private getNetworkId(lobbyId: string): string {
@@ -53,6 +56,9 @@ class PeerService {
       
       // Seed roster with the host themselves
       networkStore.addPeer({ id: userId, name: userName, isHost: true });
+
+      // Start the lightweight audio synchronization heartbeat
+      this.startAudioSync();
     });
 
     this.peer.on('connection', (conn) => {
@@ -137,6 +143,14 @@ class PeerService {
           type: 'ROSTER_UPDATE',
           payload: useNetworkStore.getState().peers
         });
+
+        // Immediately sync the joining guest to the current host audio timeline
+        if (useNetworkStore.getState().gameState === 'lobby') {
+          conn.send({
+            type: 'AUDIO_SYNC',
+            payload: { trackPosition: lobbyAudioManager.getCurrentPosition() }
+          });
+        }
       }
 
       if (message.type === 'GAME_DATA') {
@@ -217,6 +231,14 @@ class PeerService {
         useNetworkStore.setState({ peers: message.payload });
       }
 
+      if (message.type === 'AUDIO_SYNC') {
+        const { gameState } = useNetworkStore.getState();
+        // Only synchronize if in lobby state; zero impact during gameplay
+        if (gameState === 'lobby') {
+          lobbyAudioManager.syncTo(message.payload.trackPosition);
+        }
+      }
+
       if (message.type === 'START_GAME') {
         useNetworkStore.setState({ gameState: 'game', activeGameId: message.payload.gameId });
       }
@@ -238,10 +260,54 @@ class PeerService {
   }
 
   /**
+   * Authoritative Audio Timeline Synchronization
+   */
+  public startAudioSync() {
+    this.stopAudioSync();
+
+    // Send an immediate sync pulse if guests are connected
+    this.sendAudioSync();
+
+    // 5-second lightweight heartbeat: sends ~40 bytes only while host is in lobby
+    this.audioSyncInterval = window.setInterval(() => {
+      const { gameState, isHost } = useNetworkStore.getState();
+      if (isHost && gameState === 'lobby' && this.connections.size > 0) {
+        this.sendAudioSync();
+      }
+    }, 5000);
+  }
+
+  public stopAudioSync() {
+    if (this.audioSyncInterval !== null) {
+      clearInterval(this.audioSyncInterval);
+      this.audioSyncInterval = null;
+    }
+  }
+
+  public sendAudioSync() {
+    const { isHost, gameState } = useNetworkStore.getState();
+    if (!isHost || gameState !== 'lobby' || this.connections.size === 0) return;
+
+    const trackPosition = lobbyAudioManager.getCurrentPosition();
+    this.broadcastToAllGuests({
+      type: 'AUDIO_SYNC',
+      payload: { trackPosition }
+    });
+  }
+
+  /**
    * Utilities & Broadcasting 
    */
   public broadcast(message: PeerMessage) {
     const isHost = useNetworkStore.getState().isHost;
+    
+    // Automatically manage audio sync heartbeat state on game transitions
+    if (message.type === 'START_GAME') {
+      this.stopAudioSync();
+    } else if (message.type === 'END_GAME') {
+      this.startAudioSync();
+    }
+
     if (isHost) {
       this.broadcastToAllGuests(message);
     } else {
@@ -260,6 +326,8 @@ class PeerService {
   }
 
   public disconnect() {
+    this.stopAudioSync();
+
     if (this.peer) {
       this.peer.destroy();
       this.peer = null;

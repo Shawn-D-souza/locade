@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../platform/store/useUserStore';
 import { Pencil } from 'lucide-react';
+import { lobbyAudioManager } from '../platform/audio/lobbyAudioManager';
 
 export default function Home() {
   const { userName, setUserName } = useUser();
@@ -16,14 +17,16 @@ export default function Home() {
   };
 
   const handleCreateLobby = () => {
+    lobbyAudioManager.unlock();
     const newLobbyId = Math.floor(100000 + Math.random() * 900000).toString();
-    navigate(`/lobby/${newLobbyId}`, { state: { isHost: true } });
+    navigate(`/lobby/${newLobbyId}`, { state: { isHost: true, userUnlocked: true } });
   };
 
   const handleJoinLobby = () => {
     const code = joinId.trim();
     if (code.length === 6) {
-      navigate(`/lobby/${code}`, { state: { isHost: false } });
+      lobbyAudioManager.unlock();
+      navigate(`/lobby/${code}`, { state: { isHost: false, userUnlocked: true } });
     }
   };
 

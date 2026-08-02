@@ -1,5 +1,6 @@
 import { useNetworkStore } from '../platform/store/useNetworkStore';
 import { useNavigate } from 'react-router-dom';
+import { lobbyAudioManager } from '../platform/audio/lobbyAudioManager';
 
 export default function InterruptionModal() {
   const { status, errorMessage, resetNetwork } = useNetworkStore();
@@ -15,9 +16,10 @@ export default function InterruptionModal() {
   };
 
   const handleCreateLobby = () => {
+    lobbyAudioManager.unlock();
     resetNetwork();
     const newLobbyId = Math.floor(100000 + Math.random() * 900000).toString();
-    navigate(`/lobby/${newLobbyId}`, { state: { isHost: true } });
+    navigate(`/lobby/${newLobbyId}`, { state: { isHost: true, userUnlocked: true } });
   };
 
   return (
