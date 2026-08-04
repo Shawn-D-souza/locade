@@ -237,18 +237,23 @@ export class SoundSynthesizer {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
+    // Use sine wave to avoid harshness, and keep the frequency fixed 
+    // or dropping almost instantly to avoid the "pew-pew" laser sound.
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(600, now);
-    osc.frequency.exponentialRampToValueAtTime(300, now + 0.03);
+    osc.frequency.setValueAtTime(900, now);
+    
+    // A 10ms pitch drop is heard as a "click" or transient, not a laser sweep
+    osc.frequency.exponentialRampToValueAtTime(400, now + 0.01);
 
-    gain.gain.setValueAtTime(this.volume * 0.5, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    // Very short, percussive volume decay (30ms total)
+    gain.gain.setValueAtTime(this.volume * 0.6, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start(now);
-    osc.stop(now + 0.04);
+    osc.stop(now + 0.03);
   }
 }
 

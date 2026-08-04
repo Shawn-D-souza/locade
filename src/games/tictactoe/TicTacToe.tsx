@@ -4,6 +4,7 @@ import type { TicTacToeData, PlayerMark, GameStatus } from './types';
 import { useNetworkStore } from '../../platform/store/useNetworkStore';
 import { useUser } from '../../platform/store/useUserStore';
 import { ExitButton } from '../components/ExitButton';
+import { feedback } from '../../platform/feedback/feedbackManager';
 
 // Helper function to check for a winner (now uses player IDs)
 function calculateWinner(squares: (string | null)[]): string | null {
@@ -158,6 +159,18 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
     }
   }, [incomingData, isHost]);
 
+  // Handle sounds/haptics for win/lose
+  useEffect(() => {
+    if (!gameState) return;
+    if (gameState.status === 'win') {
+      if (gameState.winnerId === userId) {
+        feedback.win();
+      } else {
+        feedback.lose();
+      }
+    }
+  }, [gameState?.status, gameState?.winnerId, userId]);
+
   // Handle guest dropping
   useEffect(() => {
     if (isHost && initialized.current) {
@@ -246,6 +259,8 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
 
   const handleClick = (index: number) => {
     if (!gameState || gameState.board[index] || gameState.status !== 'playing' || !amITurn) return;
+
+    feedback.tap();
 
     if (isHost) {
       processMove(index, userId);
