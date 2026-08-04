@@ -9,7 +9,7 @@
 export class SoundSynthesizer {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
-  private volume = 0.3; // Default 30% volume
+  private volume = 0.5; // Default 50% volume
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -33,7 +33,7 @@ export class SoundSynthesizer {
     const unlock = () => {
       this.initContext();
       if (this.ctx && this.ctx.state === 'suspended') {
-        this.ctx.resume().catch(() => {});
+        this.ctx.resume().catch(() => { });
       }
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
@@ -198,9 +198,9 @@ export class SoundSynthesizer {
 
     // Body tone: fixed freq square-ish burst with fast decay
     const config = {
-      light:  { freq: 180, dur: 0.025, vol: 0.50 },
+      light: { freq: 180, dur: 0.025, vol: 0.50 },
       medium: { freq: 220, dur: 0.040, vol: 0.55 },
-      heavy:  { freq: 260, dur: 0.060, vol: 0.62 },
+      heavy: { freq: 260, dur: 0.060, vol: 0.62 },
     }[intensity];
 
     const osc = ctx.createOscillator();

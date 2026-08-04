@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Settings, X, Volume2, Music, Heart, Smartphone } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Settings, X, Volume2, VolumeX, Music, Heart, Smartphone } from 'lucide-react';
 import { lobbyAudioManager } from '../platform/audio/lobbyAudioManager';
 import { feedback } from '../platform/feedback/feedbackManager';
 
@@ -10,30 +10,83 @@ interface LobbySettingsModalProps {
 export default function LobbySettingsModal({ onClose }: LobbySettingsModalProps) {
   const [musicVol, setMusicVol] = useState(() => lobbyAudioManager.getMusicVolume());
   const [sfxVol, setSfxVol] = useState(() => feedback.getSfxVolume());
+  const [prevMusicVol, setPrevMusicVol] = useState(() => Math.max(lobbyAudioManager.getMusicVolume(), 0.2));
+  const [prevSfxVol, setPrevSfxVol] = useState(() => Math.max(feedback.getSfxVolume(), 0.5));
   const [hapticsOn, setHapticsOn] = useState(() => feedback.isHapticsEnabled());
   const [activeTab, setActiveTab] = useState<'audio' | 'credits'>('audio');
+
+  const toggleMusicMute = () => {
+    if (musicVol > 0) {
+      setPrevMusicVol(musicVol);
+      setMusicVol(0);
+      lobbyAudioManager.setMusicVolume(0);
+    } else {
+      setMusicVol(prevMusicVol);
+      lobbyAudioManager.setMusicVolume(prevMusicVol);
+    }
+  };
+
+  const toggleSfxMute = () => {
+    if (sfxVol > 0) {
+      setPrevSfxVol(sfxVol);
+      setSfxVol(0);
+      feedback.setSfxVolume(0);
+    } else {
+      setSfxVol(prevSfxVol);
+      feedback.setSfxVolume(prevSfxVol);
+      feedback.tap();
+    }
+  };
+
+  const lastMusicTapTime = useRef<number>(0);
 
   const handleMusicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setMusicVol(val);
     lobbyAudioManager.setMusicVolume(val);
+
+    const now = performance.now();
+    if (now - lastMusicTapTime.current > 150) {
+      feedback.hit('light');
+      lastMusicTapTime.current = now;
+    }
   };
+
+  const handleMusicRelease = () => {
+    feedback.hit('light');
+  };
+
+  const lastTapTime = useRef<number>(0);
 
   const handleSfxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setSfxVol(val);
     feedback.setSfxVolume(val);
+    
+    // Play a preview sound throttled to avoid audio spam
+    const now = performance.now();
+    if (now - lastTapTime.current > 150) {
+      feedback.hit('light');
+      lastTapTime.current = now;
+    }
   };
 
   const handleSfxRelease = () => {
-    feedback.tap();
+    feedback.hit('light');
   };
 
   const toggleHaptics = () => {
     const newVal = !hapticsOn;
     setHapticsOn(newVal);
     feedback.setHapticsEnabled(newVal);
-    if (newVal) feedback.tap();
+    if (newVal) {
+      feedback.hit('light'); // Get the audible tick
+      // Followed by a satisfying "power up" double-pulse haptic
+      feedback.customHaptic([
+        { duration: 30, intensity: 0.5 },
+        { delay: 40, duration: 60, intensity: 1.0 }
+      ]);
+    }
   };
 
   // Close on Escape key
@@ -82,17 +135,23 @@ export default function LobbySettingsModal({ onClose }: LobbySettingsModalProps)
         </div>
 
         {/* Content Area */}
-        <div className="min-h-[220px]">
+        <div className="h-[220px] relative w-full">
           
           {/* Audio Tab */}
           {activeTab === 'audio' && (
-            <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200 pt-2">
+            <div className="absolute inset-0 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200 pt-2">
               
               {/* Music Volume Slider */}
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center text-indigo-900 font-bold">
                   <div className="flex items-center gap-2">
-                    <Music className="w-5 h-5" />
+                    <button 
+                      onClick={toggleMusicMute}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors cursor-pointer border-2 ${musicVol > 0 ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-transparent hover:border-indigo-300' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border-transparent hover:border-slate-300'}`}
+                      title={musicVol > 0 ? "Mute Music" : "Unmute Music"}
+                    >
+                      {musicVol > 0 ? <Music className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                    </button>
                     <span className="uppercase text-sm tracking-widest">Music</span>
                   </div>
                   <span>{Math.round(musicVol * 100)}%</span>
@@ -104,6 +163,8 @@ export default function LobbySettingsModal({ onClose }: LobbySettingsModalProps)
                   step="0.01"
                   value={musicVol}
                   onChange={handleMusicChange}
+                  onMouseUp={handleMusicRelease}
+                  onTouchEnd={handleMusicRelease}
                   className="w-full h-3 bg-indigo-100 rounded-lg appearance-none cursor-pointer accent-indigo-600 outline-none focus:ring-2 focus:ring-indigo-400"
                 />
               </div>
@@ -112,7 +173,13 @@ export default function LobbySettingsModal({ onClose }: LobbySettingsModalProps)
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center text-indigo-900 font-bold">
                   <div className="flex items-center gap-2">
-                    <Volume2 className="w-5 h-5" />
+                    <button 
+                      onClick={toggleSfxMute}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors cursor-pointer border-2 ${sfxVol > 0 ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-transparent hover:border-indigo-300' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border-transparent hover:border-slate-300'}`}
+                      title={sfxVol > 0 ? "Mute SFX" : "Unmute SFX"}
+                    >
+                      {sfxVol > 0 ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                    </button>
                     <span className="uppercase text-sm tracking-widest">SFX</span>
                   </div>
                   <span>{Math.round(sfxVol * 100)}%</span>
@@ -148,15 +215,15 @@ export default function LobbySettingsModal({ onClose }: LobbySettingsModalProps)
 
           {/* Credits Tab */}
           {activeTab === 'credits' && (
-            <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-left-4 duration-200 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="absolute inset-0 flex flex-col gap-5 animate-in fade-in slide-in-from-left-4 duration-200 overflow-y-auto pr-2 custom-scrollbar">
               
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-4 bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 shadow-sm">
                   <Heart className="w-8 h-8 text-red-500 shrink-0 fill-red-500/20" />
-                  <div className="flex flex-col gap-0.5">
+                  <div className="flex flex-col gap-0.5 min-w-0">
                     <span className="text-xs font-bold uppercase text-indigo-900/70 tracking-widest">Created By</span>
-                    <span className="font-black text-indigo-900 text-lg">Shawn Dsouza</span>
-                    <span className="text-sm text-slate-700 font-semibold leading-tight">Programming, Design, & Everything Else</span>
+                    <span className="font-black text-indigo-900 text-lg break-words">Shawn Dsouza</span>
+                    <span className="text-sm text-slate-700 font-semibold leading-tight break-words">Programming, Design, & Everything Else</span>
                   </div>
                 </div>
 
@@ -165,10 +232,10 @@ export default function LobbySettingsModal({ onClose }: LobbySettingsModalProps)
                     <Music className="w-5 h-5 text-slate-600" />
                     <span className="text-sm font-bold uppercase text-slate-700 tracking-widest">Lobby Music</span>
                   </div>
-                  <div className="text-xs text-slate-800 font-semibold leading-relaxed bg-white p-3 rounded-xl border-2 border-slate-200 shadow-inner">
+                  <div className="text-xs text-slate-800 font-semibold leading-relaxed bg-white p-3 rounded-xl border-2 border-slate-200 shadow-inner break-words">
                     "Pixelland" Kevin MacLeod (incompetech.com)<br/>
                     Licensed under Creative Commons: By Attribution 4.0 License<br/>
-                    <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="text-indigo-700 hover:text-indigo-900 hover:underline font-bold">
+                    <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" className="text-indigo-700 hover:text-indigo-900 hover:underline font-bold break-all">
                       http://creativecommons.org/licenses/by/4.0/
                     </a>
                   </div>

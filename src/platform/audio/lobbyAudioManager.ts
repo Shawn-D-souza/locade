@@ -14,9 +14,9 @@ class LobbyAudioManager {
   private loadPromise: Promise<void> | null = null;
 
   private unlocked = false;
-  private musicVolume = 0.3; // Default 30%
-  private sfxVolume = 0.3;   // Default 30%
-  private currentFadeTarget = 0.3; // Track current intended target for fade operations
+  private musicVolume = 0.2; // Default 20%
+  private sfxVolume = 0.5;   // Default 50%
+  private currentFadeTarget = 0.2; // Track current intended target for fade operations
   private playbackRate = 0.80; // 20% slowdown chill tempo
   private isPlaying = false;
   private playbackStartCtxTime = 0;
