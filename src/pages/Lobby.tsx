@@ -314,7 +314,7 @@ export default function Lobby() {
                     <div
                       key={game.id}
                       onClick={() => canStartGame && handleStartGame(game.id)}
-                      className={`relative border-4 border-indigo-900 rounded-2xl aspect-square flex flex-col group ${canStartGame ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg transition-transform' : 'cursor-not-allowed opacity-75'}`}
+                      className={`relative overflow-hidden border-4 border-indigo-900 rounded-2xl aspect-square flex flex-col group ${canStartGame ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg transition-transform' : 'cursor-not-allowed opacity-75'}`}
                     >
                       <div className={`absolute inset-0 flex items-center justify-center bg-[#f0f2f5] transition-opacity ${canStartGame ? 'group-active:opacity-80' : 'grayscale opacity-50'}`}>
                         {game.thumbnailUrl ? (
