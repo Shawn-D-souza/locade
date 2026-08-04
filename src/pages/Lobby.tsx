@@ -6,9 +6,10 @@ import QRCode from 'react-qr-code';
 import { GAME_REGISTRY } from '../games/registry';
 import GameShell from '../features/game-shell/GameShell';
 import { useUser } from '../platform/store/useUserStore';
-import { Copy, Share2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Copy, Share2, AlertCircle, ArrowLeft, Settings } from 'lucide-react';
 import InterruptionModal from '../components/InterruptionModal';
 import LobbyEntrySplash from '../components/LobbyEntrySplash';
+import LobbySettingsModal from '../components/LobbySettingsModal';
 import { lobbyAudioManager } from '../platform/audio/lobbyAudioManager';
 
 const PLAYER_COLORS = [
@@ -36,6 +37,7 @@ export default function Lobby() {
   // Track if we need the arcade direct entry splash (for fresh QR/URL joins without previous user gesture)
   const isDirectJoin = !location.state?.userUnlocked && !lobbyAudioManager.isUnlocked();
   const [showEntrySplash, setShowEntrySplash] = useState(isDirectJoin);
+  const [showSettings, setShowSettings] = useState(false);
 
   const totalPlayers = peers.length;
 
@@ -187,6 +189,9 @@ export default function Lobby() {
       {showEntrySplash && lobbyId && (
         <LobbyEntrySplash lobbyId={lobbyId} onEnter={() => setShowEntrySplash(false)} />
       )}
+      {showSettings && (
+        <LobbySettingsModal onClose={() => setShowSettings(false)} />
+      )}
       <InterruptionModal />
       <div className="flex flex-col justify-start items-stretch gap-0 w-full h-[var(--app-height,100dvh)] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono pt-4 sm:pt-8 pb-20 overflow-y-auto touch-auto">
 
@@ -203,6 +208,14 @@ export default function Lobby() {
           <h1 className="text-4xl md:text-[2.5rem] font-black uppercase text-center text-indigo-900 tracking-[-1.5px] mx-auto">
             Locade
           </h1>
+          <button
+            onClick={() => setShowSettings(true)}
+            aria-label="Settings"
+            title="Settings"
+            className="absolute right-0 w-11 h-11 bg-white hover:bg-slate-100 text-indigo-900 border-2 border-indigo-900 rounded-xl flex items-center justify-center font-bold shadow-[2px_2px_0_theme(colors.indigo.900)] active:shadow-none active:translate-y-[2px] active:translate-x-[2px] transition-all cursor-pointer"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
         </div>
 
         {errorMessage && (

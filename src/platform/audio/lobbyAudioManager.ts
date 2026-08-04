@@ -14,7 +14,9 @@ class LobbyAudioManager {
   private loadPromise: Promise<void> | null = null;
 
   private unlocked = false;
-  private targetVolume = 0.35; // Ideal balanced background level
+  private musicVolume = 0.3; // Default 30%
+  private sfxVolume = 0.3;   // Default 30%
+  private currentFadeTarget = 0.3; // Track current intended target for fade operations
   private playbackRate = 0.80; // 20% slowdown chill tempo
   private isPlaying = false;
   private playbackStartCtxTime = 0;
@@ -25,9 +27,70 @@ class LobbyAudioManager {
     if (typeof window !== 'undefined') {
       this.setupGlobalUnlockListener();
       this.setupVisibilityListener();
+      this.loadSettings();
       // Start downloading and decoding the audio in the background immediately
       this.loadAudio();
     }
+  }
+
+  private loadSettings() {
+    if (typeof window !== 'undefined') {
+      const savedMusic = localStorage.getItem('locade_music_volume');
+      const savedSfx = localStorage.getItem('locade_sfx_volume');
+      if (savedMusic !== null) this.musicVolume = parseFloat(savedMusic);
+      if (savedSfx !== null) this.sfxVolume = parseFloat(savedSfx);
+    }
+  }
+
+  public getMusicVolume(): number { return this.musicVolume; }
+  public getSfxVolume(): number { return this.sfxVolume; }
+
+  public setMusicVolume(vol: number) {
+    const clamped = Math.max(0, Math.min(1, vol));
+    this.musicVolume = clamped;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('locade_music_volume', clamped.toString());
+    }
+    // Update live volume if playing (but honor if it's currently faded out)
+    if (this.isPlaying && this.ctx && this.gainNode && this.currentFadeTarget > 0) {
+      this.currentFadeTarget = clamped;
+      this.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, this.ctx.currentTime);
+      this.gainNode.gain.linearRampToValueAtTime(clamped, this.ctx.currentTime + 0.1); // Fast smooth ramp
+    }
+  }
+
+  public setSfxVolume(vol: number) {
+    const clamped = Math.max(0, Math.min(1, vol));
+    this.sfxVolume = clamped;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('locade_sfx_volume', clamped.toString());
+    }
+  }
+
+  /**
+   * Plays a short synthesized "beep" to test SFX volume without external files.
+   */
+  public playTestSfx() {
+    this.initContext();
+    if (!this.ctx || this.ctx.state === 'suspended') return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    // Nice professional pop/click sound
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.05);
+
+    gain.gain.setValueAtTime(this.sfxVolume, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(this.ctx.currentTime);
+    osc.stop(this.ctx.currentTime + 0.1);
   }
 
   private setupVisibilityListener() {
@@ -161,7 +224,7 @@ class LobbyAudioManager {
 
     // If drift is beyond 80ms tolerance, adjust playback offset
     if (diff > 0.08) {
-      const currentGain = this.gainNode ? this.gainNode.gain.value : this.targetVolume;
+      const currentGain = this.gainNode ? this.gainNode.gain.value : this.currentFadeTarget;
       this.startSource(normalizedTarget);
       if (this.gainNode && this.ctx) {
         this.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
@@ -202,8 +265,8 @@ class LobbyAudioManager {
     if (!this.ctx || !this.gainNode) return;
 
     const durationMs = options?.fadeInDuration ?? 5000;
-    const targetVol = options?.targetVolume ?? this.targetVolume;
-    this.targetVolume = targetVol;
+    const targetVol = options?.targetVolume ?? this.musicVolume;
+    this.currentFadeTarget = targetVol;
     
     if (this.ctx.state === 'suspended') {
       await this.ctx.resume();
@@ -245,6 +308,7 @@ class LobbyAudioManager {
 
     const durationMs = options?.fadeOutDuration ?? 4000;
     this.isPlaying = false;
+    this.currentFadeTarget = 0;
 
     // Smoothly ramp volume down to 0
     this.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
