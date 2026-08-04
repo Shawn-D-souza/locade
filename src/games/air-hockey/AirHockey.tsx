@@ -34,7 +34,7 @@ const MAX_DT = 1 / 30;              // Cap delta-time to avoid physics explosion
 const MIN_DT = 1 / 240;             // Floor delta-time to avoid velocity spikes
 const PADDLE_VEL_LERP = 0.7;        // EMA weight for new paddle velocity sample
 const VELOCITY_DEAD_ZONE = 0.5;     // Below this the puck is considered stopped
-const SYNC_INTERVAL_MS = 33;        // ~30Hz network broadcast rate
+const SYNC_INTERVAL_MS = 16;        // ~60Hz network broadcast rate
 const WIN_SCORE = 5;                // First to reach this score wins
 
 // ─── Vector Helpers ──────────────────────────────────────────────────────────
@@ -231,6 +231,9 @@ function updatePhysics(state: GameState, rawDt: number, isHost: boolean): void {
     const paddle = state.paddles[i];
     if (paddle.grabbed) {
       paddle.pos = { ...paddle.targetPos };
+    } else {
+      // Dead reckoning: extrapolate position using velocity for smooth movement between network syncs
+      paddle.pos = v2Add(paddle.pos, v2Scale(paddle.vel, dt));
     }
     constrainPaddle(paddle, i === 0);
   }
@@ -246,7 +249,8 @@ function updatePhysics(state: GameState, rawDt: number, isHost: boolean): void {
         v2Scale(instantVel, PADDLE_VEL_LERP),
       );
     } else {
-      paddle.vel = v2(0, 0);
+      // Apply friction so it slows down naturally if packets are dropped
+      paddle.vel = v2Scale(paddle.vel, 0.9);
     }
   }
 
