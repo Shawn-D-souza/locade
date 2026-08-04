@@ -227,7 +227,7 @@ export default function Lobby() {
 
         {/* Code and QR Section */}
         <section className="flex flex-col">
-          <h2 className="text-[1.2rem] font-semibold uppercase text-slate-600 text-left -mb-[2px] px-2 ml-2 bg-[#f0f2f5] inline-block relative z-10 w-fit self-start">
+          <h2 className="text-[1.2rem] font-semibold uppercase text-slate-600 text-left -mb-[2px] px-2 ml-2 bg-slate-100 inline-block relative z-10 w-fit self-start">
             Lobby
           </h2>
           <div className="bg-white border-2 border-indigo-900 rounded-3xl w-full p-5 sm:p-6 flex flex-col gap-5 mb-4">
@@ -258,7 +258,7 @@ export default function Lobby() {
 
         {/* Players Section */}
         <section className="flex flex-col">
-          <h2 className="text-[1.2rem] font-semibold uppercase text-slate-600 text-left -mb-[2px] px-2 ml-2 bg-[#f0f2f5] inline-block relative z-10 w-fit self-start">
+          <h2 className="text-[1.2rem] font-semibold uppercase text-slate-600 text-left -mb-[2px] px-2 ml-2 bg-slate-100 inline-block relative z-10 w-fit self-start">
             Players ({totalPlayers})
           </h2>
           <div className="bg-white border-2 border-indigo-900 rounded-3xl w-full p-4 sm:p-6 flex flex-col gap-3 mb-4">
@@ -300,7 +300,7 @@ export default function Lobby() {
         {/* Games Section */}
         {isHost ? (
           <section className="flex flex-col">
-            <h2 className="text-[1.2rem] font-semibold uppercase text-slate-600 text-left -mb-[2px] px-2 ml-2 bg-[#f0f2f5] inline-block relative z-10 w-fit self-start">
+            <h2 className="text-[1.2rem] font-semibold uppercase text-slate-600 text-left -mb-[2px] px-2 ml-2 bg-slate-100 inline-block relative z-10 w-fit self-start">
               Games
             </h2>
             <div className="bg-white border-2 border-indigo-900 rounded-3xl w-full p-4 sm:p-6">
