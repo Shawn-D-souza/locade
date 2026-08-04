@@ -3,7 +3,19 @@ import type { GameProps } from '../GameProps';
 import { useNetworkStore } from '../../platform/store/useNetworkStore';
 import { useUser } from '../../platform/store/useUserStore';
 import { ExitButton } from '../components/ExitButton';
+import { feedback } from '../../platform/feedback/feedbackManager';
 import type { AirHockeyData, GameState, Vec2, Puck, Paddle } from './types';
+
+// ─── Feedback Throttle Helper ────────────────────────────────────────────────
+
+let lastHitFeedbackTime = 0;
+function triggerHitFeedback(intensity: 'light' | 'medium' | 'heavy' = 'medium') {
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  if (now - lastHitFeedbackTime > 75) {
+    lastHitFeedbackTime = now;
+    feedback.hit(intensity);
+  }
+}
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -121,6 +133,7 @@ function resolveWallCollision(puck: Puck): 'none' | 'goal-top' | 'goal-bottom' {
       const velDotN = v2Dot(puck.vel, normal);
       if (velDotN < 0) {
         puck.vel = v2Sub(puck.vel, v2Scale(normal, (1 + WALL_RESTITUTION) * velDotN));
+        triggerHitFeedback('light');
       }
     }
   }
@@ -135,9 +148,11 @@ function resolveWallCollision(puck: Puck): 'none' | 'goal-top' | 'goal-bottom' {
   if (puck.pos.x < PUCK_RADIUS) {
     puck.pos.x = PUCK_RADIUS;
     puck.vel.x = Math.abs(puck.vel.x) * WALL_RESTITUTION;
+    triggerHitFeedback('light');
   } else if (puck.pos.x > TABLE_WIDTH - PUCK_RADIUS) {
     puck.pos.x = TABLE_WIDTH - PUCK_RADIUS;
     puck.vel.x = -Math.abs(puck.vel.x) * WALL_RESTITUTION;
+    triggerHitFeedback('light');
   }
 
   // ── Top wall / top goal ───────────────────────────────────────────
@@ -147,6 +162,7 @@ function resolveWallCollision(puck: Puck): 'none' | 'goal-top' | 'goal-bottom' {
     } else {
       puck.pos.y = PUCK_RADIUS;
       puck.vel.y = Math.abs(puck.vel.y) * WALL_RESTITUTION;
+      triggerHitFeedback('light');
     }
   }
   // ── Bottom wall / bottom goal ─────────────────────────────────────
@@ -156,6 +172,7 @@ function resolveWallCollision(puck: Puck): 'none' | 'goal-top' | 'goal-bottom' {
     } else {
       puck.pos.y = TABLE_HEIGHT - PUCK_RADIUS;
       puck.vel.y = -Math.abs(puck.vel.y) * WALL_RESTITUTION;
+      triggerHitFeedback('light');
     }
   }
 
@@ -198,6 +215,8 @@ function resolvePuckPaddleCollision(puck: Puck, paddle: Paddle): void {
   if (relVelN < 0) {
     const impulse = -(1 + PADDLE_RESTITUTION) * relVelN;
     puck.vel = v2Add(puck.vel, v2Scale(normal, impulse));
+    const intensity = Math.abs(relVelN) > 400 ? 'heavy' : 'medium';
+    triggerHitFeedback(intensity);
   }
 }
 
@@ -257,6 +276,8 @@ function updatePhysics(state: GameState, rawDt: number, isHost: boolean): void {
         } else if (state.score[1] >= WIN_SCORE) {
           state.status = 'win';
           state.winnerIdx = 1;
+        } else {
+          feedback.score();
         }
       }
       resetPuck(state);
@@ -279,6 +300,8 @@ function updatePhysics(state: GameState, rawDt: number, isHost: boolean): void {
         } else if (state.score[1] >= WIN_SCORE) {
           state.status = 'win';
           state.winnerIdx = 1;
+        } else {
+          feedback.score();
         }
       }
       resetPuck(state);
@@ -444,6 +467,22 @@ export default function AirHockey({ sendDataToPeers, incomingData, onGameEnd }: 
   const opponentName = opponent ? opponent.name : 'Opponent';
 
   const [winState, setWinState] = useState<{status: 'win', winnerIdx: number | null} | null>(null);
+  const prevGuestScoreRef = useRef<[number, number]>([0, 0]);
+  const prevWinStateRef = useRef<boolean>(false);
+
+  // Trigger sensory feedback when match concludes (win/lose)
+  useEffect(() => {
+    if (winState && !prevWinStateRef.current) {
+      prevWinStateRef.current = true;
+      if (winState.winnerIdx === myPaddleIdx) {
+        feedback.win();
+      } else {
+        feedback.lose();
+      }
+    } else if (!winState) {
+      prevWinStateRef.current = false;
+    }
+  }, [winState, myPaddleIdx]);
 
   // Keep references to props/state to avoid re-running the main effect
   const latestPropsRef = useRef({ sendDataToPeers, isHost, isGuest, myPaddleIdx, setWinState });
@@ -474,6 +513,20 @@ export default function AirHockey({ sendDataToPeers, incomingData, onGameEnd }: 
     if (incomingData.type === 'SYNC' && isGuest) {
       // Detect a restart: status moves from 'win' back to 'playing'.
       const isRestarting = state.status === 'win' && incomingData.state.status === 'playing';
+
+      // Detect goal/score for guest client
+      const [prev0, prev1] = prevGuestScoreRef.current;
+      const [new0, new1] = incomingData.state.score;
+      if (new0 !== prev0 || new1 !== prev1) {
+        prevGuestScoreRef.current = [new0, new1];
+        if (incomingData.state.status !== 'win' && !isRestarting) {
+          feedback.score();
+        }
+      }
+
+      if (isRestarting) {
+        prevGuestScoreRef.current = [0, 0];
+      }
 
       // Snap to Host's authoritative state
       state.puck.pos = { ...incomingData.state.puck.pos };
@@ -689,6 +742,7 @@ export default function AirHockey({ sendDataToPeers, incomingData, onGameEnd }: 
 
   const handleRestart = () => {
     if (!isHost) return;
+    feedback.tap();
 
     // Mutate the existing state object in-place rather than replacing stateRef.
     // The game loop and input handlers captured `stateRef.current` via closure
@@ -733,7 +787,14 @@ export default function AirHockey({ sendDataToPeers, incomingData, onGameEnd }: 
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center w-full h-full min-h-[var(--app-height,100dvh)] bg-slate-100 font-sans p-4 relative">
-      {isHost && <ExitButton onExit={onGameEnd} />}
+      {isHost && (
+        <ExitButton 
+          onExit={() => {
+            feedback.tap();
+            onGameEnd();
+          }} 
+        />
+      )}
       <div className="flex items-center gap-4 text-slate-500 mb-6 tracking-widest uppercase font-bold text-sm sm:text-base">
         <span className={isHost ? "text-indigo-500" : "text-rose-500"}>{userName}</span>
         <span className="opacity-50">VS</span>
@@ -766,7 +827,10 @@ export default function AirHockey({ sendDataToPeers, incomingData, onGameEnd }: 
           {isHost ? (
             <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[400px]">
               <button 
-                onClick={onGameEnd}
+                onClick={() => {
+                  feedback.tap();
+                  onGameEnd();
+                }}
                 className="flex-1 bg-white text-slate-800 rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow-sm border border-slate-200 hover:shadow-md hover:bg-slate-50 active:scale-95 transition-all"
               >
                 Quit

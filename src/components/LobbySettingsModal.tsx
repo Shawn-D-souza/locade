@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Settings, X, Volume2, Music, Heart } from 'lucide-react';
+import { Settings, X, Volume2, Music, Heart, Smartphone } from 'lucide-react';
 import { lobbyAudioManager } from '../platform/audio/lobbyAudioManager';
+import { feedback } from '../platform/feedback/feedbackManager';
 
 interface LobbySettingsModalProps {
   onClose: () => void;
@@ -8,7 +9,8 @@ interface LobbySettingsModalProps {
 
 export default function LobbySettingsModal({ onClose }: LobbySettingsModalProps) {
   const [musicVol, setMusicVol] = useState(() => lobbyAudioManager.getMusicVolume());
-  const [sfxVol, setSfxVol] = useState(() => lobbyAudioManager.getSfxVolume());
+  const [sfxVol, setSfxVol] = useState(() => feedback.getSfxVolume());
+  const [hapticsOn, setHapticsOn] = useState(() => feedback.isHapticsEnabled());
   const [activeTab, setActiveTab] = useState<'audio' | 'credits'>('audio');
 
   const handleMusicChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,11 +22,18 @@ export default function LobbySettingsModal({ onClose }: LobbySettingsModalProps)
   const handleSfxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setSfxVol(val);
-    lobbyAudioManager.setSfxVolume(val);
+    feedback.setSfxVolume(val);
   };
 
   const handleSfxRelease = () => {
-    lobbyAudioManager.playTestSfx();
+    feedback.tap();
+  };
+
+  const toggleHaptics = () => {
+    const newVal = !hapticsOn;
+    setHapticsOn(newVal);
+    feedback.setHapticsEnabled(newVal);
+    if (newVal) feedback.tap();
   };
 
   // Close on Escape key
@@ -119,6 +128,20 @@ export default function LobbySettingsModal({ onClose }: LobbySettingsModalProps)
                   onTouchEnd={handleSfxRelease}
                   className="w-full h-3 bg-indigo-100 rounded-lg appearance-none cursor-pointer accent-indigo-600 outline-none focus:ring-2 focus:ring-indigo-400"
                 />
+              </div>
+
+              {/* Haptics Toggle */}
+              <div className="flex items-center justify-between pt-2 border-t-2 border-indigo-900/10">
+                <div className="flex items-center gap-2 text-indigo-900 font-bold">
+                  <Smartphone className="w-5 h-5" />
+                  <span className="uppercase text-sm tracking-widest">Haptics</span>
+                </div>
+                <button
+                  onClick={toggleHaptics}
+                  className={`w-14 h-8 rounded-full flex items-center p-1 transition-colors ${hapticsOn ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                >
+                  <div className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform ${hapticsOn ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
               </div>
             </div>
           )}
