@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router';
 import { peerService } from '../platform/network/peerService';
 import { useNetworkStore } from '../platform/store/useNetworkStore';
 import QRCode from 'react-qr-code';

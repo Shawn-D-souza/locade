@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { useUser } from '../platform/store/useUserStore';
 import { Pencil } from 'lucide-react';
 import { lobbyAudioManager } from '../platform/audio/lobbyAudioManager';

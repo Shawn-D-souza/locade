@@ -1,5 +1,5 @@
 import { useNetworkStore } from '../platform/store/useNetworkStore';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { lobbyAudioManager } from '../platform/audio/lobbyAudioManager';
 
 export default function InterruptionModal() {
