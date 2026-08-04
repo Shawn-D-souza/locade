@@ -190,6 +190,10 @@ class LobbyAudioManager {
     return this.isPlaying;
   }
 
+  public isContextRunning(): boolean {
+    return this.ctx?.state === 'running';
+  }
+
   /**
    * Calculate current track playback position (in seconds) within the loop.
    */
@@ -219,17 +223,34 @@ class LobbyAudioManager {
     const normalizedTarget = targetPosition % duration;
     const currentPos = this.getCurrentPosition();
 
-    let diff = Math.abs(currentPos - normalizedTarget);
-    diff = Math.min(diff, duration - diff); // Account for loop boundary
+    // Shortest path error accounting for loop boundary
+    // error > 0 means guest is behind, needs to speed up
+    // error < 0 means guest is ahead, needs to slow down
+    let error = normalizedTarget - currentPos;
+    if (error > duration / 2) error -= duration;
+    if (error < -duration / 2) error += duration;
 
-    // If drift is beyond 80ms tolerance, adjust playback offset
-    if (diff > 0.08) {
+    // Hard snap only if we are drastically out of sync (> 1.0 second)
+    if (Math.abs(error) > 1.0) {
       const currentGain = this.gainNode ? this.gainNode.gain.value : this.currentFadeTarget;
       this.startSource(normalizedTarget);
       if (this.gainNode && this.ctx) {
         this.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
         this.gainNode.gain.setValueAtTime(currentGain, this.ctx.currentTime);
       }
+      return;
+    }
+
+    // Soft Elastic Sync: Adjust playback rate slightly to catch up seamlessly
+    if (this.sourceNode && Math.abs(error) > 0.02) {
+      // Limit adjustment to +/- 3% speed to avoid noticeable pitch shifts
+      const rateAdjustment = Math.max(-0.03, Math.min(0.03, error / 2));
+      
+      // Smoothly transition to the adjusted speed, and then back to normal after catching up
+      this.sourceNode.playbackRate.setTargetAtTime(this.playbackRate + rateAdjustment, this.ctx.currentTime, 0.1);
+      
+      // Reset back to base playback rate after 2.5 seconds (halfway to next sync)
+      this.sourceNode.playbackRate.setTargetAtTime(this.playbackRate, this.ctx.currentTime + 2.5, 0.5);
     }
   }
 

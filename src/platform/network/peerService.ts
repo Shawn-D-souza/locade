@@ -10,13 +10,17 @@ type PeerMessage =
   | { type: 'START_GAME'; payload: { gameId: string } }
   | { type: 'END_GAME'; payload: null }
   | { type: 'AUDIO_SYNC'; payload: { trackPosition: number } }
-  | { type: 'GAME_DATA'; payload: unknown };
+  | { type: 'GAME_DATA'; payload: unknown }
+  | { type: 'PING'; payload: { timestamp: number } }
+  | { type: 'PONG'; payload: { timestamp: number } };
 
 class PeerService {
   private peer: Peer | null = null;
   private connections: Map<string, DataConnection> = new Map();
   private hostConnection: DataConnection | null = null;
   private audioSyncInterval: number | null = null;
+  private pingInterval: number | null = null;
+  public estimatedLatency: number = 0;
 
   // Helper to generate the unique namespace key
   private getNetworkId(lobbyId: string): string {
@@ -153,6 +157,11 @@ class PeerService {
         }
       }
 
+      if (message.type === 'PING') {
+        // Host responds to PING with PONG immediately
+        conn.send({ type: 'PONG', payload: message.payload });
+      }
+
       if (message.type === 'GAME_DATA') {
         // Update local game state with incoming data
         useNetworkStore.setState({ incomingGameData: message.payload });
@@ -220,6 +229,13 @@ class PeerService {
         payload: { id: userId, name: userName }
       };
       conn.send(handshake);
+
+      // Start pinging host to measure latency
+      this.pingInterval = window.setInterval(() => {
+        if (conn.open) {
+          conn.send({ type: 'PING', payload: { timestamp: Date.now() } });
+        }
+      }, 2000);
     });
 
     conn.on('data', (data) => {
@@ -235,8 +251,18 @@ class PeerService {
         const { gameState } = useNetworkStore.getState();
         // Only synchronize if in lobby state; zero impact during gameplay
         if (gameState === 'lobby') {
-          lobbyAudioManager.syncTo(message.payload.trackPosition);
+          // Add one-way latency (latency is in ms, we need seconds)
+          const adjustedPosition = message.payload.trackPosition + (this.estimatedLatency / 1000);
+          lobbyAudioManager.syncTo(adjustedPosition);
         }
+      }
+
+      if (message.type === 'PONG') {
+        // Calculate one-way latency (RTT / 2)
+        const rtt = Date.now() - message.payload.timestamp;
+        const oneWay = rtt / 2;
+        // Smooth latency estimate using exponential moving average
+        this.estimatedLatency = this.estimatedLatency === 0 ? oneWay : this.estimatedLatency * 0.8 + oneWay * 0.2;
       }
 
       if (message.type === 'START_GAME') {
@@ -288,6 +314,9 @@ class PeerService {
     const { isHost, gameState } = useNetworkStore.getState();
     if (!isHost || gameState !== 'lobby' || this.connections.size === 0) return;
 
+    // Do not broadcast frozen timestamps if the host's audio context is suspended (e.g. mobile phone locked)
+    if (!lobbyAudioManager.isContextRunning()) return;
+
     const trackPosition = lobbyAudioManager.getCurrentPosition();
     this.broadcastToAllGuests({
       type: 'AUDIO_SYNC',
@@ -327,6 +356,11 @@ class PeerService {
 
   public disconnect() {
     this.stopAudioSync();
+    if (this.pingInterval !== null) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+    this.estimatedLatency = 0;
 
     if (this.peer) {
       this.peer.destroy();
