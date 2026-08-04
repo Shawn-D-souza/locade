@@ -51,8 +51,8 @@ class LobbyAudioManager {
     if (typeof window !== 'undefined') {
       localStorage.setItem('locade_music_volume', clamped.toString());
     }
-    // Update live volume if playing (but honor if it's currently faded out)
-    if (this.isPlaying && this.ctx && this.gainNode && this.currentFadeTarget > 0) {
+    // Update live volume if playing
+    if (this.isPlaying && this.ctx && this.gainNode) {
       this.currentFadeTarget = clamped;
       this.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
       this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, this.ctx.currentTime);
