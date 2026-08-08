@@ -17,7 +17,7 @@ class LobbyAudioManager {
   private musicVolume = 0; // Default 0%
   private sfxVolume = 0.5;   // Default 50%
   private currentFadeTarget = 0.2; // Track current intended target for fade operations
-  private playbackRate = 0.80; // 20% slowdown chill tempo
+  private playbackRate = 1.0; // Normal playback rate, using pre-slowed audio
   private isPlaying = false;
   private playbackStartCtxTime = 0;
   private initialSyncedOffset = 0;
@@ -141,7 +141,7 @@ class LobbyAudioManager {
     this.initContext();
     this.loadPromise = (async () => {
       try {
-        const response = await fetch('/audio/pixelland_lobby.ogg');
+        const response = await fetch('/audio/pixelland 75 slowed.ogg');
         const arrayBuffer = await response.arrayBuffer();
         if (this.ctx) {
           this.audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
