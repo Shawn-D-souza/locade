@@ -18,7 +18,7 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     minPlayers: 2,
     maxPlayers: 2,
     component: AirHockey,
-    thumbnailUrl: '/thumbnails/airhockey.png',
+    thumbnailUrl: '/images/airhockey.png',
   },
   'dots-clash': {
     id: 'dots-clash',
@@ -26,7 +26,7 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     minPlayers: 2,
     maxPlayers: 8,
     component: DotsClash,
-    thumbnailUrl: '/thumbnails/dotsclash.png',
+    thumbnailUrl: '/images/dotsclash.png',
   },
   tictactoe: {
     id: 'tictactoe',
@@ -34,6 +34,6 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     minPlayers: 2,
     maxPlayers: 2,
     component: TicTacToe,
-    thumbnailUrl: '/thumbnails/tictactoe.png',
+    thumbnailUrl: '/images/tictactoe.png',
   }
 };
