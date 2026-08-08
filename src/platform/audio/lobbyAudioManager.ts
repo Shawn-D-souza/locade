@@ -202,8 +202,11 @@ class LobbyAudioManager {
       return this.initialSyncedOffset || 0;
     }
 
+    // Use the live rate from the source node so elastic sync micro-adjustments
+    // are reflected in our position estimate — preventing false hard-snaps.
+    const liveRate = this.sourceNode ? this.sourceNode.playbackRate.value : this.playbackRate;
     const elapsedCtxTime = Math.max(0, this.ctx.currentTime - this.playbackStartCtxTime);
-    const elapsedTrackSeconds = elapsedCtxTime * this.playbackRate;
+    const elapsedTrackSeconds = elapsedCtxTime * liveRate;
     return elapsedTrackSeconds % this.audioBuffer.duration;
   }
 
@@ -271,8 +274,9 @@ class LobbyAudioManager {
     this.sourceNode.playbackRate.value = this.playbackRate;
     
     this.sourceNode.connect(this.gainNode);
-    
-    // Anchor the timeline start relative to this offset
+
+    // Anchor the timeline: how many context-seconds ago did offset=0 occur?
+    // At playbackRate = 1.0 this simplifies to: startCtxTime = now - offset
     this.playbackStartCtxTime = this.ctx.currentTime - (normalizedOffset / this.playbackRate);
     this.sourceNode.start(0, normalizedOffset);
   }
