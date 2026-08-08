@@ -2,10 +2,6 @@ import AirHockey from './air-hockey/AirHockey';
 import TicTacToe from './tictactoe/TicTacToe';
 import DotsClash from './dots-clash/DotsClash';
 
-import tictactoeThumb from '../assets/thumbnails/tictactoe.png';
-import dotsClashThumb from '../assets/thumbnails/dotsclash.png';
-import airHockeyThumb from '../assets/thumbnails/airhockey.png';
-
 export interface GameConfig {
   id: string;
   name: string;
@@ -22,7 +18,7 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     minPlayers: 2,
     maxPlayers: 2,
     component: AirHockey,
-    thumbnailUrl: airHockeyThumb,
+    thumbnailUrl: '/thumbnails/airhockey.png',
   },
   'dots-clash': {
     id: 'dots-clash',
@@ -30,7 +26,7 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     minPlayers: 2,
     maxPlayers: 8,
     component: DotsClash,
-    thumbnailUrl: dotsClashThumb,
+    thumbnailUrl: '/thumbnails/dotsclash.png',
   },
   tictactoe: {
     id: 'tictactoe',
@@ -38,6 +34,6 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     minPlayers: 2,
     maxPlayers: 2,
     component: TicTacToe,
-    thumbnailUrl: tictactoeThumb,
+    thumbnailUrl: '/thumbnails/tictactoe.png',
   }
 };
