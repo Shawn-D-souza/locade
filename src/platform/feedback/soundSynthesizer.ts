@@ -255,6 +255,60 @@ export class SoundSynthesizer {
     osc.start(now);
     osc.stop(now + 0.03);
   }
+
+  /**
+   * Plays a soft "pop" or "bubble" sound, perfect for placing a dot.
+   */
+  public playPop() {
+    const ctx = this.initContext();
+    if (!ctx || ctx.state === 'suspended' || this.volume <= 0) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    // Start mid-high and quickly bend up to simulate a bubble popping
+    osc.frequency.setValueAtTime(400, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(this.volume * 0.7, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.06);
+  }
+
+  /**
+   * Plays a deeper "boop" sound, for a low-impact explosion/expansion.
+   */
+  public playBoop() {
+    const ctx = this.initContext();
+    if (!ctx || ctx.state === 'suspended' || this.volume <= 0) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'triangle';
+    // Start low-mid and bend down
+    osc.frequency.setValueAtTime(250, now);
+    osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(this.volume * 0.8, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
 }
 
 export const soundSynthesizer = new SoundSynthesizer();

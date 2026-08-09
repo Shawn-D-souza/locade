@@ -141,6 +141,30 @@ export class FeedbackManager {
   }
 
   /**
+   * Soft pop for placing items like dots.
+   */
+  public pop() {
+    if (this.sfxEnabled) {
+      this.sound.playPop();
+    }
+    if (this.hapticsEnabled && this.haptics) {
+      this.haptics.trigger([{ duration: 15, intensity: 0.2 }]);
+    }
+  }
+
+  /**
+   * Deeper boop for organic explosions/expansions.
+   */
+  public boop() {
+    if (this.sfxEnabled) {
+      this.sound.playBoop();
+    }
+    if (this.hapticsEnabled && this.haptics) {
+      this.haptics.trigger([{ duration: 30, intensity: 0.5 }]);
+    }
+  }
+
+  /**
    * Direct access to underlying haptics trigger for custom patterns.
    */
   public customHaptic(input: Parameters<WebHaptics['trigger']>[0], options?: Parameters<WebHaptics['trigger']>[1]) {

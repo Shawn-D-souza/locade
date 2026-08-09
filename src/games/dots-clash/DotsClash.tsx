@@ -4,10 +4,13 @@ import type { DotsClashData, CellState, GameStatus } from './types';
 import { useNetworkStore } from '../../platform/store/useNetworkStore';
 import { useUser } from '../../platform/store/useUserStore';
 import { ExitButton } from '../components/ExitButton';
+import { feedback } from '../../platform/feedback/feedbackManager';
 
 export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: GameProps<DotsClashData>) {
   const { isHost, peers } = useNetworkStore();
   const { userId } = useUser();
+  const prevWinStateRef = useRef<boolean>(false);
+
 
   const [gameState, setGameState] = useState<{
     board: CellState[][];
@@ -20,6 +23,40 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
     winnerId: string | null;
     isResolving: boolean;
   } | null>(null);
+
+  useEffect(() => {
+    if (gameState?.status === 'win' && !prevWinStateRef.current) {
+      prevWinStateRef.current = true;
+      if (gameState.winnerId === userId) {
+        feedback.win();
+      } else {
+        feedback.lose();
+      }
+    } else if (gameState?.status !== 'win') {
+      prevWinStateRef.current = false;
+    }
+  }, [gameState?.status, gameState?.winnerId, userId]);
+
+  const prevBoardRef = useRef<CellState[][] | null>(null);
+  useEffect(() => {
+    if (gameState?.board) {
+      if (prevBoardRef.current) {
+        let exploded = false;
+        const prevBoard = prevBoardRef.current;
+        for (let r = 0; r < prevBoard.length; r++) {
+          for (let c = 0; c < prevBoard[0].length; c++) {
+            if (prevBoard[r][c].dots >= 4 && gameState.board[r][c].dots < 4) {
+              exploded = true;
+            }
+          }
+        }
+        if (exploded) {
+          feedback.boop();
+        }
+      }
+      prevBoardRef.current = gameState.board;
+    }
+  }, [gameState?.board]);
 
   const initialized = useRef(false);
 
@@ -63,6 +100,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
 
   const handleRestart = () => {
     if (!isHost) return;
+    feedback.tap();
     const otherPeers = peers.filter(p => p.id !== userId);
     if (otherPeers.length === 0) return;
 
@@ -264,6 +302,8 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
     const amITurn = gameState.currentTurnId === userId;
     if (!amITurn) return;
 
+    feedback.pop();
+
     if (isHost) {
       processMove(row, col, userId);
     } else {
@@ -319,7 +359,10 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
         {isHost ? (
           <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[400px]">
             <button
-              onClick={onGameEnd}
+              onClick={() => {
+                feedback.tap();
+                onGameEnd();
+              }}
               className="flex-1 bg-white text-slate-800 rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow hover:shadow-md hover:bg-slate-50 active:scale-95 transition-all"
             >
               Quit
@@ -371,7 +414,10 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
   return (
     <div className={`flex flex-col w-full h-full min-h-[var(--app-height,100dvh)] transition-colors duration-500 font-sans ${currentTurnTheme.bg} relative overflow-hidden`}>
       <style>{explosionCSS}</style>
-      {isHost && <ExitButton onExit={onGameEnd} />}
+      {isHost && <ExitButton onExit={() => {
+        feedback.tap();
+        onGameEnd();
+      }} />}
 
       {/* Unified Morphing Turn Indicator (Absolute positioned so it doesn't affect document flow) */}
       <div className="absolute top-0 left-0 w-full flex justify-center z-10 pointer-events-none">
