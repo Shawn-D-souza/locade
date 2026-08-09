@@ -11,6 +11,7 @@ export default function InterruptionModal() {
   if (status !== 'error') return null;
 
   const handleReturnHome = () => {
+    lobbyAudioManager.stop({ fadeOutDuration: 300 });
     resetNetwork();
     navigate('/');
   };

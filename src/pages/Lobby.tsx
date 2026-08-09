@@ -43,8 +43,8 @@ export default function Lobby() {
 
   // Background Music & Audio Sync Lifecycle Management
   useEffect(() => {
-    // If not waiting on direct-entry splash and in lobby state, smoothly fade music in
-    if (!showEntrySplash && gameState === 'lobby' && status !== 'connecting') {
+    // Only play music when actively connected, in lobby, and page is visible
+    if (!showEntrySplash && gameState === 'lobby' && status === 'connected' && !document.hidden) {
       lobbyAudioManager.play({ fadeInDuration: 5000 });
       if (isHost) {
         peerService.startAudioSync();
@@ -63,6 +63,18 @@ export default function Lobby() {
       peerService.stopAudioSync();
     };
   }, [showEntrySplash, gameState, status, isHost]);
+
+  // Resume audio when user returns to the tab (only if lobby is in the right state)
+  useEffect(() => {
+    const handleVisibilityResume = () => {
+      if (!document.hidden && !showEntrySplash && gameState === 'lobby' && status === 'connected') {
+        lobbyAudioManager.onVisibilityResume();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityResume);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityResume);
+  }, [showEntrySplash, gameState, status]);
 
   // Professional Navigation: Ensure direct entry (e.g. via URL / QR / APK) has Home in history stack
   useEffect(() => {

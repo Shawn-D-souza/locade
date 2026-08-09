@@ -93,20 +93,65 @@ class LobbyAudioManager {
     osc.stop(this.ctx.currentTime + 0.1);
   }
 
+  private stoppedByVisibility = false;
+
   private setupVisibilityListener() {
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
-        if (!this.ctx) return;
         if (document.hidden) {
-          if (this.ctx.state === 'running') {
-            this.ctx.suspend().catch(() => {});
-          }
-        } else {
-          if (this.isPlaying && this.ctx.state === 'suspended') {
-            this.ctx.resume().catch(() => {});
+          // Fully stop the audio source when the page is hidden.
+          // suspend() alone is unreliable — network changes and other browser
+          // events can resume the AudioContext unexpectedly.
+          if (this.isPlaying) {
+            this.stoppedByVisibility = true;
+            this.stopImmediate();
           }
         }
+        // We intentionally do NOT auto-resume here.
+        // The Lobby component will call play() again via onVisibilityResume().
       });
+    }
+  }
+
+  /**
+   * Call this from the component's visibility-resume handler.
+   * Only resumes playback if it was interrupted by the page going hidden.
+   */
+  public onVisibilityResume() {
+    if (this.stoppedByVisibility) {
+      this.stoppedByVisibility = false;
+      this.play({ fadeInDuration: 1500 });
+    }
+  }
+
+  /**
+   * Immediately stops audio without fade — disconnects the source node
+   * so nothing can accidentally restart it.
+   */
+  private stopImmediate() {
+    this.initialSyncedOffset = this.getCurrentPosition();
+    this.isPlaying = false;
+    this.currentFadeTarget = 0;
+
+    if (this.stopTimeout) {
+      clearTimeout(this.stopTimeout);
+      this.stopTimeout = null;
+    }
+
+    if (this.gainNode && this.ctx) {
+      this.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+    }
+
+    if (this.sourceNode) {
+      try { this.sourceNode.stop(); } catch (e) {}
+      this.sourceNode.disconnect();
+      this.sourceNode = null;
+    }
+
+    // Suspend the context as a belt-and-suspenders measure
+    if (this.ctx && this.ctx.state === 'running') {
+      this.ctx.suspend().catch(() => {});
     }
   }
 
@@ -324,6 +369,8 @@ class LobbyAudioManager {
    * Smoothly fades out and stops the lobby background music.
    */
   public stop(options?: { fadeOutDuration?: number }) {
+    this.stoppedByVisibility = false; // Clear stale flag — explicit stop takes precedence
+
     if (!this.ctx || !this.gainNode || !this.isPlaying) {
       this.isPlaying = false;
       return;
