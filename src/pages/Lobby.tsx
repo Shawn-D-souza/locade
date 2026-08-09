@@ -11,6 +11,7 @@ import InterruptionModal from '../components/InterruptionModal';
 import LobbyEntrySplash from '../components/LobbyEntrySplash';
 import LobbySettingsModal from '../components/LobbySettingsModal';
 import { lobbyAudioManager } from '../platform/audio/lobbyAudioManager';
+import { feedback } from '../platform/feedback/feedbackManager';
 
 const PLAYER_COLORS = [
   '#FF6B6B', // P1: Action Red
@@ -91,6 +92,7 @@ export default function Lobby() {
   }, []);
 
   const handleLeaveLobby = () => {
+    feedback.tap();
     lobbyAudioManager.stop({ fadeOutDuration: 2500 });
     peerService.disconnect();
     resetNetwork();
@@ -104,6 +106,7 @@ export default function Lobby() {
     const canStart = totalPlayers >= game.minPlayers && totalPlayers <= game.maxPlayers;
 
     if (canStart && isHost) {
+      feedback.tap();
       peerService.broadcast({ type: 'START_GAME', payload: { gameId } });
       useNetworkStore.setState({ gameState: 'game', activeGameId: gameId });
     }
@@ -150,10 +153,12 @@ export default function Lobby() {
   }, [lobbyId, location.state]);
 
   const handleCopy = () => {
+    feedback.tap();
     navigator.clipboard.writeText(currentUrl);
   };
 
   const handleShare = () => {
+    feedback.tap();
     if (navigator.share) {
       navigator.share({
         title: 'Join Locade Lobby',
@@ -202,7 +207,10 @@ export default function Lobby() {
         <LobbyEntrySplash lobbyId={lobbyId} onEnter={() => setShowEntrySplash(false)} />
       )}
       {showSettings && (
-        <LobbySettingsModal onClose={() => setShowSettings(false)} />
+        <LobbySettingsModal onClose={() => {
+          feedback.tap();
+          setShowSettings(false);
+        }} />
       )}
       <InterruptionModal />
       <div className="flex flex-col justify-start items-stretch gap-0 w-full h-[var(--app-height,100dvh)] max-w-[540px] lg:max-w-[680px] mx-auto p-4 sm:p-5 font-mono pt-4 sm:pt-8 pb-20 overflow-y-auto touch-auto">
@@ -221,7 +229,10 @@ export default function Lobby() {
             Locade
           </h1>
           <button
-            onClick={() => setShowSettings(true)}
+            onClick={() => {
+              feedback.tap();
+              setShowSettings(true);
+            }}
             aria-label="Settings"
             title="Settings"
             className="absolute right-0 w-11 h-11 bg-white hover:bg-slate-100 text-indigo-900 border-2 border-indigo-900 rounded-xl flex items-center justify-center font-bold shadow-[2px_2px_0_theme(colors.indigo.900)] active:shadow-none active:translate-y-[2px] active:translate-x-[2px] transition-all cursor-pointer"
