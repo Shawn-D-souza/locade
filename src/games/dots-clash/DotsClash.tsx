@@ -245,7 +245,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
 
         return nextState;
       });
-    }, 350); // Delay between explosion steps
+    }, 550); // Delay between explosion steps
 
     return () => clearTimeout(timer);
   }, [gameState?.isResolving, gameState?.board, isHost, sendDataToPeers]);
@@ -345,8 +345,32 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
   const mySpawns = gameState.spawns[userId] || 0;
   const currentTurnTheme = getPlayerTheme(gameState.currentTurnId);
 
+  const explosionCSS = `
+    @keyframes explode-y {
+      0% { transform: translateY(0); }
+      27% { transform: translateY(0); animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+      100% { transform: translateY(calc(var(--explode-n) * (424.5% + 8px))); }
+    }
+    @keyframes explode-x {
+      0% { transform: translateX(0); }
+      27% { transform: translateX(0); animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+      100% { transform: translateX(calc(var(--explode-n) * (424.5% + 8px))); }
+    }
+    @keyframes explode-y-ghost {
+      0% { transform: translateY(calc(var(--ghost-start) * (424.5% + 8px))); }
+      27% { transform: translateY(calc(var(--ghost-start) * (424.5% + 8px))); animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+      100% { transform: translateY(calc(var(--ghost-end) * (424.5% + 8px))); }
+    }
+    @keyframes explode-x-ghost {
+      0% { transform: translateX(calc(var(--ghost-start) * (424.5% + 8px))); }
+      27% { transform: translateX(calc(var(--ghost-start) * (424.5% + 8px))); animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+      100% { transform: translateX(calc(var(--ghost-end) * (424.5% + 8px))); }
+    }
+  `;
+
   return (
     <div className={`flex flex-col w-full h-full min-h-[var(--app-height,100dvh)] transition-colors duration-500 font-sans ${currentTurnTheme.bg} relative overflow-hidden`}>
+      <style>{explosionCSS}</style>
       {isHost && <ExitButton onExit={onGameEnd} />}
 
       {/* Unified Morphing Turn Indicator (Absolute positioned so it doesn't affect document flow) */}
@@ -391,7 +415,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
       {/* Board Container (responsive, single screen fit, perfect squares) */}
       <div className="flex-1 w-full mx-auto flex flex-col items-center justify-center p-2 sm:p-4 mt-[90px] sm:mt-[100px] mb-2 sm:mb-4 min-h-0">
         <div
-          className="grid w-full h-full max-w-[700px] gap-1.5 sm:gap-2 md:gap-3"
+          className="grid w-full h-full max-w-[700px] gap-[8px]"
           style={{
             gridTemplateColumns: `repeat(${gameState.board[0].length}, minmax(0, 1fr))`,
             gridTemplateRows: `repeat(${gameState.board.length}, minmax(0, 1fr))`,
@@ -410,26 +434,109 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
 
               // Pure clean modern button style
               const isInteractive = canMove;
+              
+              let outlineClasses = '';
+              if (cell.dots >= 4) {
+                outlineClasses = `ring-4 ${cellTheme.cellRing} ring-offset-1 z-20 shadow-lg`;
+              } else if (isInteractive) {
+                outlineClasses = `ring-2 ${cellTheme.cellRing} z-10`;
+              } else {
+                outlineClasses = `ring-1 ring-slate-200/80`;
+              }
+
               const interactiveClasses = isInteractive
-                ? `bg-white hover:bg-slate-50 active:scale-95 cursor-pointer shadow-sm hover:shadow-md ring-2 ${cellTheme.cellRing} z-10`
-                : `bg-white/80 cursor-default ring-1 ring-slate-200/80`;
+                ? `bg-white hover:bg-slate-50 active:scale-95 cursor-pointer shadow-sm hover:shadow-md`
+                : `bg-white/80 cursor-default`;
 
               return (
                 <button
                   key={`${rIndex}-${cIndex}`}
                   onClick={() => handleClick(rIndex, cIndex)}
                   disabled={!canMove}
-                  className={`w-full h-full rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-300 ${interactiveClasses} relative overflow-hidden group`}
+                  className={`w-full h-full rounded-lg sm:rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-300 ${interactiveClasses} ${outlineClasses} relative overflow-visible group`}
                 >
                   {cell.dots > 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="flex flex-wrap items-center justify-center content-center gap-[10%] w-[62%] h-[62%]">
-                        {Array.from({ length: cell.dots }).map((_, i) => (
-                          <div
-                            key={i}
-                            className={`w-[38%] h-[38%] rounded-full ${cellTheme.dot} shadow-sm transform transition-all animate-in zoom-in duration-300`}
-                          />
-                        ))}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                      <div className={`relative flex flex-wrap items-center justify-center content-center gap-[10%] w-[62%] h-[62%]`}>
+                        {Array.from({ length: cell.dots }).map((_, i) => {
+                          if (cell.dots >= 4) {
+                            const dir = i % 4;
+                            const rows = gameState.board.length;
+                            const cols = gameState.board[0].length;
+                            
+                            let moveN = 0;
+                            let isX = false;
+                            
+                            let isEdge = false;
+                            let ghostStart = 0;
+                            let ghostEnd = 0;
+                            
+                            if (dir === 0) { // UP
+                              moveN = -1;
+                              isX = false;
+                              if (rIndex === 0) {
+                                isEdge = true;
+                                ghostStart = rows;
+                                ghostEnd = rows - 1;
+                              }
+                            } else if (dir === 1) { // RIGHT
+                              moveN = 1;
+                              isX = true;
+                              if (cIndex === cols - 1) {
+                                isEdge = true;
+                                ghostStart = -cols;
+                                ghostEnd = -(cols - 1);
+                              }
+                            } else if (dir === 2) { // LEFT
+                              moveN = -1;
+                              isX = true;
+                              if (cIndex === 0) {
+                                isEdge = true;
+                                ghostStart = cols;
+                                ghostEnd = cols - 1;
+                              }
+                            } else if (dir === 3) { // DOWN
+                              moveN = 1;
+                              isX = false;
+                              if (rIndex === rows - 1) {
+                                isEdge = true;
+                                ghostStart = -rows;
+                                ghostEnd = -(rows - 1);
+                              }
+                            }
+                            
+                            const animName = isX ? 'explode-x' : 'explode-y';
+                                             
+                            return (
+                              <div key={i} className="relative w-[38%] h-[38%] z-40">
+                                <div
+                                  className={`absolute inset-0 rounded-full ${cellTheme.dot} shadow-md`}
+                                  style={{ 
+                                    animation: `${animName} 550ms forwards`,
+                                    '--explode-n': moveN 
+                                  } as React.CSSProperties}
+                                />
+                                {isEdge && (
+                                  <div
+                                    className={`absolute inset-0 rounded-full ${cellTheme.dot} shadow-md`}
+                                    style={{ 
+                                      animation: `${isX ? 'explode-x-ghost' : 'explode-y-ghost'} 550ms forwards`,
+                                      '--ghost-start': ghostStart,
+                                      '--ghost-end': ghostEnd
+                                    } as React.CSSProperties}
+                                  />
+                                )}
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <div
+                              key={i}
+                              className={`w-[38%] h-[38%] rounded-full ${cellTheme.dot} shadow-md relative animate-in zoom-in duration-300 ease-out`}
+                            />
+                          );
+                        })}
                       </div>
                     </div>
                   )}
