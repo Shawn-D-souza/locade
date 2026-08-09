@@ -9,7 +9,7 @@ type PeerMessage =
   | { type: 'ROSTER_UPDATE'; payload: PeerPlayer[] }
   | { type: 'START_GAME'; payload: { gameId: string } }
   | { type: 'END_GAME'; payload: null }
-  | { type: 'AUDIO_SYNC'; payload: { trackPosition: number } }
+  | { type: 'AUDIO_SYNC'; payload: { trackPosition: number; sentAt: number } }
   | { type: 'GAME_DATA'; payload: unknown }
   | { type: 'PING'; payload: { timestamp: number } }
   | { type: 'PONG'; payload: { timestamp: number } };
@@ -152,7 +152,7 @@ class PeerService {
         if (useNetworkStore.getState().gameState === 'lobby') {
           conn.send({
             type: 'AUDIO_SYNC',
-            payload: { trackPosition: lobbyAudioManager.getCurrentPosition() }
+            payload: { trackPosition: lobbyAudioManager.getCurrentPosition(), sentAt: Date.now() }
           });
         }
       }
@@ -251,9 +251,10 @@ class PeerService {
         const { gameState } = useNetworkStore.getState();
         // Only synchronize if in lobby state; zero impact during gameplay
         if (gameState === 'lobby') {
-          // Add one-way latency (latency is in ms, we need seconds)
-          const adjustedPosition = message.payload.trackPosition + (this.estimatedLatency / 1000);
-          lobbyAudioManager.syncTo(adjustedPosition);
+          // Use the actual message transit time for compensation instead of the PING estimate,
+          // which is unreliable (0 on the first sync before any PONG has arrived)
+          const transitSec = Math.max(0, (Date.now() - message.payload.sentAt) / 1000);
+          lobbyAudioManager.syncTo(message.payload.trackPosition + transitSec);
         }
       }
 
@@ -320,7 +321,7 @@ class PeerService {
     const trackPosition = lobbyAudioManager.getCurrentPosition();
     this.broadcastToAllGuests({
       type: 'AUDIO_SYNC',
-      payload: { trackPosition }
+      payload: { trackPosition, sentAt: Date.now() }
     });
   }
 

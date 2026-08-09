@@ -22,6 +22,7 @@ class LobbyAudioManager {
   private playbackStartCtxTime = 0;
   private initialSyncedOffset = 0;
   private stopTimeout: number | null = null;
+  private rawArrayBuffer: ArrayBuffer | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -181,15 +182,27 @@ class LobbyAudioManager {
   }
 
   private async loadAudio() {
-    if (this.audioBuffer || this.loadPromise) return this.loadPromise;
+    if (this.audioBuffer) return;
+
+    // Context now exists but a previous fetch completed without one — decode the cached bytes
+    if (this.rawArrayBuffer && this.ctx) {
+      try {
+        this.audioBuffer = await this.ctx.decodeAudioData(this.rawArrayBuffer.slice(0));
+      } catch (e) {
+        console.warn('LobbyAudioManager decode retry error:', e);
+      }
+      return;
+    }
+
+    if (this.loadPromise) return this.loadPromise;
 
     this.initContext();
     this.loadPromise = (async () => {
       try {
         const response = await fetch('/audio/Final Stero low.ogg');
-        const arrayBuffer = await response.arrayBuffer();
+        this.rawArrayBuffer = await response.arrayBuffer();
         if (this.ctx) {
-          this.audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+          this.audioBuffer = await this.ctx.decodeAudioData(this.rawArrayBuffer.slice(0));
         }
       } catch (e) {
         console.warn('LobbyAudioManager load error:', e);
@@ -281,11 +294,12 @@ class LobbyAudioManager {
 
     // Hard snap only if we are drastically out of sync (> 1.0 second)
     if (Math.abs(error) > 1.0) {
-      const currentGain = this.gainNode ? this.gainNode.gain.value : this.currentFadeTarget;
       this.startSource(normalizedTarget);
       if (this.gainNode && this.ctx) {
         this.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
-        this.gainNode.gain.setValueAtTime(currentGain, this.ctx.currentTime);
+        this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, this.ctx.currentTime);
+        // Restore the intended volume that the cancelled fade was heading towards
+        this.gainNode.gain.linearRampToValueAtTime(this.currentFadeTarget, this.ctx.currentTime + 0.3);
       }
       return;
     }
@@ -298,8 +312,8 @@ class LobbyAudioManager {
       // Smoothly transition to the adjusted speed, and then back to normal after catching up
       this.sourceNode.playbackRate.setTargetAtTime(this.playbackRate + rateAdjustment, this.ctx.currentTime, 0.1);
       
-      // Reset back to base playback rate after 2.5 seconds (halfway to next sync)
-      this.sourceNode.playbackRate.setTargetAtTime(this.playbackRate, this.ctx.currentTime + 2.5, 0.5);
+      // Reset back to base playback rate after 4.5 seconds (just before next 5s sync pulse)
+      this.sourceNode.playbackRate.setTargetAtTime(this.playbackRate, this.ctx.currentTime + 4.5, 0.5);
     }
   }
 
