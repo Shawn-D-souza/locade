@@ -292,8 +292,9 @@ class LobbyAudioManager {
     if (error > duration / 2) error -= duration;
     if (error < -duration / 2) error += duration;
 
-    // Hard snap only if we are drastically out of sync (> 1.0 second)
-    if (Math.abs(error) > 1.0) {
+    // Hard snap for any drift > 150ms: clean position reset, inaudible because gain is preserved.
+    // Elastic rate is reserved for tiny micro-drifts only.
+    if (Math.abs(error) > 0.15) {
       this.startSource(normalizedTarget);
       if (this.gainNode && this.ctx) {
         this.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
