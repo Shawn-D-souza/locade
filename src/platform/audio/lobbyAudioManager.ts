@@ -141,7 +141,7 @@ class LobbyAudioManager {
     this.initContext();
     this.loadPromise = (async () => {
       try {
-        const response = await fetch('/audio/pixelland 75 slowed.ogg');
+        const response = await fetch('/audio/Final Stero low.ogg');
         const arrayBuffer = await response.arrayBuffer();
         if (this.ctx) {
           this.audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
@@ -202,11 +202,12 @@ class LobbyAudioManager {
       return this.initialSyncedOffset || 0;
     }
 
-    // Use the live rate from the source node so elastic sync micro-adjustments
-    // are reflected in our position estimate — preventing false hard-snaps.
-    const liveRate = this.sourceNode ? this.sourceNode.playbackRate.value : this.playbackRate;
     const elapsedCtxTime = Math.max(0, this.ctx.currentTime - this.playbackStartCtxTime);
-    const elapsedTrackSeconds = elapsedCtxTime * liveRate;
+    
+    // We strictly use the base playbackRate here. Multiplying the entire elapsed 
+    // time by a momentary live rate (which fluctuates during elastic sync) would 
+    // cause massive position jumps the longer the track has been playing.
+    const elapsedTrackSeconds = elapsedCtxTime * this.playbackRate;
     return elapsedTrackSeconds % this.audioBuffer.duration;
   }
 
