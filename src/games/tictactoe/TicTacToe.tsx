@@ -47,11 +47,11 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
       initialized.current = true;
       const guestId = otherPeers[0].id;
       const allPlayers = [userId, guestId];
-      
+
       // Randomly pick X and O
       const xPlayerId = Math.random() > 0.5 ? allPlayers[0] : allPlayers[1];
       const oPlayerId = xPlayerId === allPlayers[0] ? allPlayers[1] : allPlayers[0];
-      
+
       // Randomly pick first turn
       const currentTurnId = Math.random() > 0.5 ? allPlayers[0] : allPlayers[1];
 
@@ -64,7 +64,7 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
         xPlayerId,
         oPlayerId
       };
-      
+
       setGameState(initialSync);
       sendDataToPeers(initialSync);
     }
@@ -74,7 +74,7 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
     // Use the functional state updater to guarantee we always operate on the most recent state
     setGameState((currentState) => {
       if (!currentState) return currentState;
-      
+
       // Validate move
       if (currentState.board[index] || currentState.status !== 'playing' || currentState.currentTurnId !== moveUserId) {
         return currentState;
@@ -124,13 +124,13 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
 
   const handleRestart = () => {
     if (!isHost) return;
-    
+
     const otherPeers = peers.filter(p => p.id !== userId);
     if (otherPeers.length === 0) return;
-    
+
     const guestId = otherPeers[0].id;
     const allPlayers = [userId, guestId];
-    
+
     const xPlayerId = Math.random() > 0.5 ? allPlayers[0] : allPlayers[1];
     const oPlayerId = xPlayerId === allPlayers[0] ? allPlayers[1] : allPlayers[0];
     const currentTurnId = Math.random() > 0.5 ? allPlayers[0] : allPlayers[1];
@@ -144,7 +144,7 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
       xPlayerId,
       oPlayerId
     };
-    
+
     setGameState(newSync);
     sendDataToPeers(newSync);
   };
@@ -176,7 +176,7 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
     if (isHost && initialized.current) {
       // Safely determine if the opponent is still connected
       const otherPeers = peers.filter(p => p.id !== userId);
-      
+
       // If total peers drop below 2 (or the specific guest drops), end the game
       if (peers.length < 2 || otherPeers.length === 0) {
         onGameEnd();
@@ -206,7 +206,7 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
     const isWinner = gameState.winnerId === userId;
     const winnerColor = getPlayerColor(gameState.winnerId);
     const bgClass = winnerColor === 'red' ? 'bg-red-100' : 'bg-indigo-100';
-    
+
     return (
       <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[var(--app-height,100dvh)] animate-in fade-in zoom-in duration-300 transition-colors duration-500 ${bgClass} font-mono p-4`}>
         <div className="text-center mb-10 bg-white shadow-2xl rounded-3xl p-8 sm:p-10 w-full max-w-[400px]">
@@ -214,16 +214,16 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
             {isWinner ? 'Victory!' : 'Defeat'}
           </h1>
         </div>
-        
+
         {isHost ? (
           <div className="flex flex-col sm:flex-row gap-4 w-full max-w-[400px]">
-            <button 
+            <button
               onClick={onGameEnd}
               className="flex-1 bg-slate-100 text-indigo-900 rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow-md hover:shadow-lg hover:bg-slate-200 active:scale-95 transition-all"
             >
               Quit
             </button>
-            <button 
+            <button
               onClick={handleRestart}
               className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl p-4 font-black text-xl uppercase cursor-pointer shadow-md hover:shadow-lg active:scale-95 transition-all"
             >
@@ -250,12 +250,7 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
   const myMark = gameState.xPlayerId === userId ? 'X' : 'O';
   const currentTurnColor = getPlayerColor(gameState.currentTurnId);
 
-  let statusText = '';
-  if (gameState.status === 'draw') {
-    statusText = 'Draw!';
-  } else {
-    statusText = amITurn ? 'Your turn' : "Opponent's turn";
-  }
+
 
   const handleClick = (index: number) => {
     if (!gameState || gameState.board[index] || gameState.status !== 'playing' || !amITurn) return;
@@ -272,57 +267,80 @@ export default function TicTacToe({ sendDataToPeers, incomingData, onGameEnd }: 
   const bgClass = currentTurnColor === 'red' ? 'bg-red-100' : 'bg-indigo-100';
 
   return (
-    <div className={`flex flex-1 flex-col items-center justify-center w-full h-full min-h-[var(--app-height,100dvh)] transition-colors duration-500 font-mono ${bgClass} p-4 relative`}>
+    <div className={`flex flex-col w-full h-full min-h-[var(--app-height,100dvh)] transition-colors duration-500 font-mono ${bgClass} relative overflow-hidden`}>
       {isHost && <ExitButton onExit={onGameEnd} />}
-      {/* Header section */}
-      <div className="mb-10 flex flex-col items-center justify-center space-y-2">
-        <div className={`px-8 py-4 rounded-2xl font-black text-xl uppercase transition-colors duration-300 shadow-lg
-          ${currentTurnColor === 'red' 
-            ? 'bg-red-400 text-white' 
-            : 'bg-indigo-600 text-white'
-          }
-          ${!amITurn ? 'opacity-80 scale-95 shadow-md' : ''}
-        `}>
-          {statusText} {amITurn && <span className="ml-2 opacity-90">({myMark})</span>}
+
+      {/* Unified Morphing Turn Indicator (Absolute positioned so it doesn't affect document flow) */}
+      <div className="absolute top-0 left-0 w-full flex justify-center z-10 pointer-events-none">
+        <div
+          className={`
+            transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] 
+            flex flex-col items-center justify-end
+            ${amITurn
+              ? `w-[280px] h-[90px] sm:w-[340px] sm:h-[100px] rounded-b-[100%] shadow-[0_15px_30px_rgba(0,0,0,0.3)] border-b-8 border-x-8 ${currentTurnColor === 'red' ? 'bg-red-500 border-red-700' : 'bg-indigo-500 border-indigo-700'} pb-3 sm:pb-4`
+              : `w-[220px] h-[60px] sm:w-[260px] sm:h-[70px] rounded-b-[100%] shadow-md border-b-4 border-x-4 ${currentTurnColor === 'red' ? 'bg-red-200 border-red-300' : 'bg-indigo-200 border-indigo-300'} pb-2 opacity-70 -translate-y-2`
+            }
+          `}
+        >
+          <span
+            className={`
+              transition-all duration-700 uppercase font-black tracking-widest
+              ${amITurn
+                ? 'text-white text-2xl sm:text-3xl drop-shadow-md'
+                : `${currentTurnColor === 'red' ? 'text-red-700' : 'text-indigo-700'} text-base sm:text-lg`
+              }
+            `}
+          >
+            {amITurn ? "Your Turn" : "Opponent"}
+          </span>
+
+          {/* Mark (X/O) container that smoothly collapses when not user's turn */}
+          <div className={`transition-all duration-700 overflow-hidden ${amITurn ? 'max-h-12 opacity-100 mt-1' : 'max-h-0 opacity-0 mt-0'}`}>
+            <span className="text-white/90 font-bold text-lg sm:text-xl drop-shadow-md animate-pulse">
+              ({myMark})
+            </span>
+          </div>
         </div>
       </div>
-      
-      {/* Board */}
-      <div className="bg-white/60 backdrop-blur-md shadow-2xl p-4 sm:p-6 rounded-[2.5rem]">
-        <div className="grid grid-cols-3 gap-3 sm:gap-4 w-max">
-          {gameState.board.map((cellUserId, index) => {
-            const mark = getDisplayMark(cellUserId);
-            const markColor = getPlayerColor(cellUserId);
-            const textClass = markColor === 'red' ? 'text-red-500' : 'text-indigo-600';
-            
-            // Generate interactive classes for empty buttons when it's our turn
-            const isInteractive = !mark && amITurn && gameState.status === 'playing';
-            const interactiveClasses = isInteractive 
-              ? 'bg-slate-50 hover:bg-red-50 active:translate-y-[6px] shadow-[0_6px_0_theme(colors.indigo.900)] active:shadow-[0_0px_0_theme(colors.indigo.900)] cursor-pointer' 
-              : 'bg-slate-50/50 cursor-default shadow-[0_6px_0_theme(colors.indigo.900)]';
-              
-            // Pressed state for filled marks
-            const filledClasses = mark 
-              ? 'bg-white translate-y-[6px] shadow-[0_0px_0_theme(colors.indigo.900)] cursor-default' 
-              : '';
-            
-            return (
-              <button
-                key={index}
-                onClick={() => handleClick(index)}
-                className={`w-24 h-24 sm:w-32 sm:h-32 rounded-3xl flex items-center justify-center text-7xl font-black uppercase transition-all duration-150 border-[3px] border-indigo-900
+
+      {/* Board Container (with balanced static top padding so it never moves and stays centered) */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4 pt-[90px] sm:pt-[110px] w-full">
+        <div className="bg-white/60 backdrop-blur-md shadow-2xl p-4 sm:p-6 rounded-[2.5rem]">
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 w-max">
+            {gameState.board.map((cellUserId, index) => {
+              const mark = getDisplayMark(cellUserId);
+              const markColor = getPlayerColor(cellUserId);
+              const textClass = markColor === 'red' ? 'text-red-500' : 'text-indigo-600';
+
+              // Generate interactive classes for empty buttons when it's our turn
+              const isInteractive = !mark && amITurn && gameState.status === 'playing';
+              const interactiveClasses = isInteractive
+                ? 'bg-slate-50 hover:bg-red-50 active:translate-y-[6px] shadow-[0_6px_0_theme(colors.indigo.900)] active:shadow-[0_0px_0_theme(colors.indigo.900)] cursor-pointer'
+                : 'bg-slate-50/50 cursor-default shadow-[0_6px_0_theme(colors.indigo.900)]';
+
+              // Pressed state for filled marks
+              const filledClasses = mark
+                ? 'bg-white translate-y-[6px] shadow-[0_0px_0_theme(colors.indigo.900)] cursor-default'
+                : '';
+
+              return (
+                <button
+                  key={index}
+                  onClick={() => handleClick(index)}
+                  className={`w-24 h-24 sm:w-32 sm:h-32 rounded-3xl flex items-center justify-center text-7xl font-black uppercase transition-all duration-150 border-[3px] border-indigo-900
                   ${mark ? filledClasses : interactiveClasses}
                 `}
-                disabled={!!cellUserId || gameState.status !== 'playing' || !amITurn}
-              >
-                {mark && (
-                  <span className={`transform transition-all duration-300 animate-in zoom-in spin-in-12 ${textClass} drop-shadow-md`}>
-                    {mark}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                  disabled={!!cellUserId || gameState.status !== 'playing' || !amITurn}
+                >
+                  {mark && (
+                    <span className={`transform transition-all duration-300 animate-in zoom-in spin-in-12 ${textClass} drop-shadow-md`}>
+                      {mark}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
