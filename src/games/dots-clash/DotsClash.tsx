@@ -414,10 +414,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
   return (
     <div className={`flex flex-col w-full h-full min-h-[var(--app-height,100dvh)] transition-colors duration-500 font-sans ${currentTurnTheme.bg} relative overflow-hidden`}>
       <style>{explosionCSS}</style>
-      {isHost && <ExitButton onExit={() => {
-        feedback.tap();
-        onGameEnd();
-      }} />}
+      {isHost && <ExitButton onExit={onGameEnd} />}
 
       {/* Unified Morphing Turn Indicator (Absolute positioned so it doesn't affect document flow) */}
       <div className="absolute top-0 left-0 w-full flex justify-center z-10 pointer-events-none">
