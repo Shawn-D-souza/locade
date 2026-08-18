@@ -75,7 +75,8 @@ export class SoundSynthesizer {
    */
   public playScore() {
     const ctx = this.initContext();
-    if (!ctx || ctx.state === 'suspended' || this.volume <= 0) return;
+    if (!ctx || this.volume <= 0) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
     const now = ctx.currentTime;
 
@@ -118,7 +119,8 @@ export class SoundSynthesizer {
    */
   public playWin() {
     const ctx = this.initContext();
-    if (!ctx || ctx.state === 'suspended' || this.volume <= 0) return;
+    if (!ctx || this.volume <= 0) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
     const notes = [
       { freq: 523.25, start: 0.00, dur: 0.12, type: 'triangle' as OscillatorType }, // C5
@@ -154,7 +156,8 @@ export class SoundSynthesizer {
    */
   public playLose() {
     const ctx = this.initContext();
-    if (!ctx || ctx.state === 'suspended' || this.volume <= 0) return;
+    if (!ctx || this.volume <= 0) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
     const now = ctx.currentTime;
 
@@ -192,7 +195,8 @@ export class SoundSynthesizer {
    */
   public playHit(intensity: 'light' | 'medium' | 'heavy' = 'medium') {
     const ctx = this.initContext();
-    if (!ctx || ctx.state === 'suspended' || this.volume <= 0) return;
+    if (!ctx || this.volume <= 0) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
     const now = ctx.currentTime;
 
@@ -231,7 +235,8 @@ export class SoundSynthesizer {
    */
   public playTap() {
     const ctx = this.initContext();
-    if (!ctx || ctx.state === 'suspended' || this.volume <= 0) return;
+    if (!ctx || this.volume <= 0) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -261,7 +266,8 @@ export class SoundSynthesizer {
    */
   public playPop() {
     const ctx = this.initContext();
-    if (!ctx || ctx.state === 'suspended' || this.volume <= 0) return;
+    if (!ctx || this.volume <= 0) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -288,7 +294,8 @@ export class SoundSynthesizer {
    */
   public playBoop() {
     const ctx = this.initContext();
-    if (!ctx || ctx.state === 'suspended' || this.volume <= 0) return;
+    if (!ctx || this.volume <= 0) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
