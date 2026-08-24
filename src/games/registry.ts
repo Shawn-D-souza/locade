@@ -6,7 +6,7 @@ export interface GameConfig {
   id: string;
   name: string;
   minPlayers: number;
-  maxPlayers: number;
+  maxPlayers?: number;
   component: React.ComponentType<any> | null;
   thumbnailUrl?: string;
 }
@@ -24,7 +24,6 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     id: 'dots-clash',
     name: 'Dots Clash',
     minPlayers: 2,
-    maxPlayers: 8,
     component: DotsClash,
     thumbnailUrl: '/images/dotsclash.png',
   },
