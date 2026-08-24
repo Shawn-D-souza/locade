@@ -251,9 +251,12 @@ class PeerService {
         const { gameState } = useNetworkStore.getState();
         // Only synchronize if in lobby state; zero impact during gameplay
         if (gameState === 'lobby') {
-          // Use the actual message transit time for compensation instead of the PING estimate,
-          // which is unreliable (0 on the first sync before any PONG has arrived)
-          const transitSec = Math.max(0, (Date.now() - message.payload.sentAt) / 1000);
+          // Use the smoothed RTT/2 latency estimate for transit compensation.
+          // The old approach (Date.now() - sentAt) compared clocks across
+          // devices, but machine clocks aren't synchronized — the offset
+          // between two devices is typically 100ms–2s, creating phantom
+          // drift that triggers constant hard corrections every 5s pulse.
+          const transitSec = this.estimatedLatency / 1000;
           lobbyAudioManager.syncTo(message.payload.trackPosition + transitSec);
         }
       }

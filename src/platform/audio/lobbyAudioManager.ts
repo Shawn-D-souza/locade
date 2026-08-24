@@ -271,7 +271,9 @@ class LobbyAudioManager {
 
   /**
    * Synchronize this device's audio playback to an authoritative host track position.
-   * If drift exceeds 80ms, gracefully re-anchors playback to maintain unison.
+   * Uses silent position-snap: instantly mutes, jumps to the correct position,
+   * then fades back in over 20ms. This is completely inaudible and avoids the
+   * pitch artifacts of elastic rate adjustment.
    */
   public syncTo(targetPosition: number) {
     if (typeof targetPosition !== 'number' || isNaN(targetPosition) || targetPosition < 0) return;
@@ -292,30 +294,25 @@ class LobbyAudioManager {
     if (error > duration / 2) error -= duration;
     if (error < -duration / 2) error += duration;
 
-    // Hard snap for any drift > 150ms: clean position reset, inaudible because gain is preserved.
-    // Elastic rate is reserved for tiny micro-drifts only.
-    if (Math.abs(error) > 0.15) {
-      this.startSource(normalizedTarget);
-      if (this.gainNode && this.ctx) {
-        this.gainNode.gain.cancelScheduledValues(this.ctx.currentTime);
-        this.gainNode.gain.setValueAtTime(this.gainNode.gain.value, this.ctx.currentTime);
-        // Restore the intended volume that the cancelled fade was heading towards
-        this.gainNode.gain.linearRampToValueAtTime(this.currentFadeTarget, this.ctx.currentTime + 0.3);
-      }
-      return;
-    }
+    // Dead zone: ignore drift under 30ms (imperceptible, within normal jitter)
+    if (Math.abs(error) < 0.03) return;
 
-    // Soft Elastic Sync: Adjust playback rate slightly to catch up seamlessly
-    if (this.sourceNode && Math.abs(error) > 0.02) {
-      // Limit adjustment to +/- 3% speed to avoid noticeable pitch shifts
-      const rateAdjustment = Math.max(-0.03, Math.min(0.03, error / 2));
-      
-      // Smoothly transition to the adjusted speed, and then back to normal after catching up
-      this.sourceNode.playbackRate.setTargetAtTime(this.playbackRate + rateAdjustment, this.ctx.currentTime, 0.1);
-      
-      // Reset back to base playback rate after 4.5 seconds (just before next 5s sync pulse)
-      this.sourceNode.playbackRate.setTargetAtTime(this.playbackRate, this.ctx.currentTime + 4.5, 0.5);
-    }
+    // Silent position correction:
+    // 1. Instantly zero the gain (masks the waveform discontinuity — no click)
+    // 2. Swap to the correct position
+    // 3. Fade gain back to target over 20ms (imperceptible dip)
+    //
+    // This replaces the old elastic rate-adjustment approach which caused
+    // audible pitch wobble (±3%) and a feedback loop: rate changes made
+    // getCurrentPosition() inaccurate (it uses the base playbackRate),
+    // so each sync pulse saw phantom drift and over-corrected again.
+    const now = this.ctx.currentTime;
+    this.gainNode!.gain.cancelScheduledValues(now);
+    this.gainNode!.gain.setValueAtTime(0, now);
+
+    this.startSource(normalizedTarget);
+
+    this.gainNode!.gain.linearRampToValueAtTime(this.currentFadeTarget, now + 0.02);
   }
 
   private startSource(offsetSeconds = 0) {
