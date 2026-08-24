@@ -103,7 +103,7 @@ export default function Lobby() {
     const game = GAME_REGISTRY[gameId];
     if (!game) return;
 
-    const canStart = totalPlayers >= game.minPlayers && totalPlayers <= game.maxPlayers;
+    const canStart = totalPlayers >= game.minPlayers && (game.maxPlayers === undefined || totalPlayers <= game.maxPlayers);
 
     if (canStart && isHost) {
       feedback.tap();
@@ -330,7 +330,7 @@ export default function Lobby() {
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 p-1">
                 {Object.values(GAME_REGISTRY).map((game) => {
                   const hasEnoughPlayers = totalPlayers >= game.minPlayers;
-                  const hasTooManyPlayers = totalPlayers > game.maxPlayers;
+                  const hasTooManyPlayers = game.maxPlayers !== undefined && totalPlayers > game.maxPlayers;
                   const canStartGame = hasEnoughPlayers && !hasTooManyPlayers;
 
                   return (
