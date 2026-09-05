@@ -12,17 +12,7 @@ import LobbyEntrySplash from '../components/LobbyEntrySplash';
 import LobbySettingsModal from '../components/LobbySettingsModal';
 import { lobbyAudioManager } from '../platform/audio/lobbyAudioManager';
 import { feedback } from '../platform/feedback/feedbackManager';
-
-const PLAYER_COLORS = [
-  '#FF6B6B', // P1: Action Red
-  '#4D96FF', // P2: Player Blue
-  '#6BCB77', // P3: Player Green
-  '#FFD93D', // P4: Arcade Yellow
-  '#9D4EDD', // P5: Purple
-  '#FF9F43', // P6: Orange
-  '#FF85B3', // P7: Pink
-  '#00CFD6', // P8: Cyan
-];
+import { PLAYER_COLORS } from '../platform/theme/playerColors';
 
 let disconnectTimeout: ReturnType<typeof setTimeout> | undefined;
 

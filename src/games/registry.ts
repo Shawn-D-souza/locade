@@ -1,6 +1,7 @@
 import AirHockey from './air-hockey/AirHockey';
 import TicTacToe from './tictactoe/TicTacToe';
 import DotsClash from './dots-clash/DotsClash';
+import SnakesLadders from './snakes-ladders/SnakesLadders';
 
 export interface GameConfig {
   id: string;
@@ -26,6 +27,13 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     minPlayers: 2,
     component: DotsClash,
     thumbnailUrl: '/images/dotsclash.png',
+  },
+  'snakes-ladders': {
+    id: 'snakes-ladders',
+    name: 'Snakes & Ladders',
+    minPlayers: 2,
+    component: SnakesLadders,
+    // thumbnailUrl pending — the Lobby falls back to a dotted letter tile.
   },
   tictactoe: {
     id: 'tictactoe',
