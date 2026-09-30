@@ -33,7 +33,7 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     name: 'Snakes & Ladders',
     minPlayers: 2,
     component: SnakesLadders,
-    // thumbnailUrl pending — the Lobby falls back to a dotted letter tile.
+    thumbnailUrl: '/images/snakesandladders.png',
   },
   tictactoe: {
     id: 'tictactoe',
