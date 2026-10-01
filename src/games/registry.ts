@@ -2,6 +2,7 @@ import AirHockey from './air-hockey/AirHockey';
 import TicTacToe from './tictactoe/TicTacToe';
 import DotsClash from './dots-clash/DotsClash';
 import SnakesLadders from './snakes-ladders/SnakesLadders';
+import Ludo from './ludo/Ludo';
 
 export interface GameConfig {
   id: string;
@@ -34,6 +35,13 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     minPlayers: 2,
     component: SnakesLadders,
     thumbnailUrl: '/images/snakesandladders.png',
+  },
+  ludo: {
+    id: 'ludo',
+    name: 'Ludo',
+    minPlayers: 2,
+    maxPlayers: 4,
+    component: Ludo,
   },
   tictactoe: {
     id: 'tictactoe',
