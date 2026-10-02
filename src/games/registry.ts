@@ -42,6 +42,7 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     minPlayers: 2,
     maxPlayers: 4,
     component: Ludo,
+    thumbnailUrl: '/images/ludo.png',
   },
   tictactoe: {
     id: 'tictactoe',
