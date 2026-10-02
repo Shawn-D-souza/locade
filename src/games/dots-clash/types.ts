@@ -21,6 +21,8 @@ export type DotsClashData =
       board: CellState[][];
       players: PlayerInfo[];
       spawns: Record<string, number>;
+      /** Players who are away or have left. Skipped by turn rotation, still seated. */
+      droppedIds: string[];
       turnIndex: number;
       turnCount: number;
       currentTurnId: string;

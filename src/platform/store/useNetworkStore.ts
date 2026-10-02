@@ -4,9 +4,20 @@ export interface PeerPlayer {
   id: string;
   name: string;
   isHost: boolean;
+  /**
+   * Whether this player's transport is currently live. A player who drops keeps
+   * their roster entry (and therefore their seat, colour and tokens) flagged
+   * `false` for the grace window, and is only removed if they fail to return.
+   */
+  connected: boolean;
 }
 
-type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error';
+/**
+ * `reconnecting` is deliberately distinct from `connecting`: Lobby renders a
+ * full-screen spinner for `connecting`, which would unmount GameShell and throw
+ * away the in-progress game — exactly the bug the reconnect logic exists to fix.
+ */
+type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error';
 
 interface NetworkState {
   lobbyId: string | null;
@@ -29,6 +40,7 @@ interface NetworkState {
   addPeer: (peer: PeerPlayer) => void;
   removePeer: (peerId: string) => void;
   updatePeerName: (peerId: string, newName: string) => void;
+  markPeerConnected: (peerId: string, connected: boolean) => void;
   
   resetNetwork: () => void;
 }
@@ -53,20 +65,28 @@ export const useNetworkStore = create<NetworkState>()((set) => ({
   
   setStatus: (status, errorMessage) => set({ status, errorMessage: errorMessage ?? null }),
   
-  addPeer: (peer) => set((state) => ({ 
-    // Prevent duplicates
-    peers: state.peers.some(p => p.id === peer.id) 
-      ? state.peers 
-      : [...state.peers, peer] 
+  addPeer: (peer) => set((state) => ({
+    // Upsert in place. A returning player must keep their original index: seat
+    // order (and therefore board quadrant and colour) is derived from roster
+    // position in both the Lobby and the games.
+    peers: state.peers.some((p) => p.id === peer.id)
+      ? state.peers.map((p) => (p.id === peer.id ? { ...p, ...peer } : p))
+      : [...state.peers, peer]
   })),
-  
+
   removePeer: (peerId) => set((state) => ({
     peers: state.peers.filter((p) => p.id !== peerId)
   })),
 
   updatePeerName: (peerId, newName) => set((state) => ({
-    peers: state.peers.map((p) => 
+    peers: state.peers.map((p) =>
       p.id === peerId ? { ...p, name: newName } : p
+    )
+  })),
+
+  markPeerConnected: (peerId, connected) => set((state) => ({
+    peers: state.peers.map((p) =>
+      p.id === peerId ? { ...p, connected } : p
     )
   })),
 

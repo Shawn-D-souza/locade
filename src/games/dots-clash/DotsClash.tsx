@@ -16,6 +16,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
     board: CellState[][];
     players: { id: string }[];
     spawns: Record<string, number>;
+    droppedIds: string[];
     turnIndex: number;
     turnCount: number;
     currentTurnId: string;
@@ -85,6 +86,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
         board,
         players: allPlayers,
         spawns,
+        droppedIds: [],
         turnIndex: 0,
         turnCount: 0,
         currentTurnId: allPlayers[0].id,
@@ -119,6 +121,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
       board,
       players: allPlayers,
       spawns,
+      droppedIds: [],
       turnIndex: 0,
       turnCount: 0,
       currentTurnId: allPlayers[0].id,
@@ -241,26 +244,36 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
         }
 
         const effectiveTurnCount = currentState.turnCount + 1;
-        const activePlayers = currentState.players.filter(p => {
+        // Who can still win. Deliberately ignores droppedIds: a player who is
+        // merely reconnecting must not hand victory to the other side, which
+        // would collapse a two-player game on a 2-second WiFi blip.
+        const contenders = currentState.players.filter(p => {
           if (effectiveTurnCount < currentState.players.length) return true;
           return playerDots[p.id] > 0;
         });
 
-        const isGameOver = effectiveTurnCount >= currentState.players.length && activePlayers.length <= 1;
+        const isGameOver = effectiveTurnCount >= currentState.players.length && contenders.length <= 1;
 
         if (isGameOver) {
           status = 'win';
-          winnerId = activePlayers.length === 1 ? activePlayers[0].id : null;
+          winnerId = contenders.length === 1 ? contenders[0].id : null;
           isResolving = false; // Stop explosions immediately
           nextTurnCount = effectiveTurnCount;
         } else if (!hasMoreExplosions) {
           isResolving = false;
           nextTurnCount = effectiveTurnCount;
 
-          nextTurnIndex = (currentState.turnIndex + 1) % currentState.players.length;
-          if (status === 'playing') {
-            while (!activePlayers.find(p => p.id === currentState.players[nextTurnIndex].id)) {
-              nextTurnIndex = (nextTurnIndex + 1) % currentState.players.length;
+          // Who can actually take a turn right now. An absent player holds the
+          // turn forever otherwise, since nobody can move on their behalf.
+          const turnEligible = contenders.filter(p => !currentState.droppedIds.includes(p.id));
+          const n = currentState.players.length;
+          nextTurnIndex = (currentState.turnIndex + 1) % n;
+
+          if (status === 'playing' && turnEligible.length > 0) {
+            // Bounded scan: an unbounded search spins the tab if nobody is eligible.
+            for (let i = 0; i < n; i++) {
+              if (turnEligible.some(p => p.id === currentState.players[nextTurnIndex].id)) break;
+              nextTurnIndex = (nextTurnIndex + 1) % n;
             }
           }
         }
@@ -296,6 +309,48 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
       processMove(incomingData.row, incomingData.col, incomingData.userId);
     }
   }, [incomingData, isHost]);
+
+  // ── Players leaving and returning mid-game (host only) ─────────────────────
+  useEffect(() => {
+    if (!isHost || !initialized.current || !gameState) return;
+    if (gameState.status !== 'playing') return;
+
+    // Derived from the roster rather than accumulated, so a player who
+    // reconnects is un-benched by the same pass that benched them. A peer with
+    // `connected: false` is inside their grace window: skipped by the rotation
+    // so the game doesn't stall, but still seated, with their cells untouched.
+    const playable = new Set(peers.filter(p => p.connected).map(p => p.id));
+    const seated = new Set(peers.map(p => p.id));
+
+    const droppedIds = gameState.players.filter(p => !playable.has(p.id)).map(p => p.id);
+
+    const unchanged =
+      droppedIds.length === gameState.droppedIds.length &&
+      droppedIds.every(id => gameState.droppedIds.includes(id));
+    if (unchanged) return;
+
+    // Only end the game once the host has actually released a seat.
+    if (gameState.players.filter(p => seated.has(p.id)).length < 2) {
+      onGameEnd();
+      return;
+    }
+
+    let { turnIndex, currentTurnId } = gameState;
+    // Hand the turn on if the player holding it just went away. Mid-explosion
+    // drops resolve themselves when the chain finishes and rotates.
+    if (droppedIds.includes(currentTurnId) && !gameState.isResolving) {
+      const n = gameState.players.length;
+      for (let i = 0; i < n; i++) {
+        turnIndex = (turnIndex + 1) % n;
+        if (!droppedIds.includes(gameState.players[turnIndex].id)) break;
+      }
+      currentTurnId = gameState.players[turnIndex].id;
+    }
+
+    const nextState = { ...gameState, droppedIds, turnIndex, currentTurnId };
+    setGameState(nextState);
+    sendDataToPeers({ type: 'SYNC', ...nextState });
+  }, [peers, isHost, gameState, onGameEnd, sendDataToPeers]);
 
   const handleClick = (row: number, col: number) => {
     if (!gameState || gameState.status !== 'playing' || gameState.isResolving) return;

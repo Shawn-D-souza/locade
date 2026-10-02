@@ -12,8 +12,13 @@ export default function GameShell<T>({ GameComponent }: GameShellProps<T>) {
 
   useEffect(() => {
     clearIncomingGameData();
+    // Now that a game component is mounted and listening, pull the host's
+    // authoritative snapshot. On a first start this is a no-op (the host has
+    // nothing cached yet); after a reconnect or a page reload it restores the
+    // game in progress.
+    if (!isHost) peerService.requestSnapshot();
     return () => clearIncomingGameData();
-  }, [clearIncomingGameData]);
+  }, [clearIncomingGameData, isHost]);
 
   const handleSendData = (data: T) => {
     peerService.broadcast({ type: 'GAME_DATA', payload: data });

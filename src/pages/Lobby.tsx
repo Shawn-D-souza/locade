@@ -34,8 +34,11 @@ export default function Lobby() {
 
   // Background Music & Audio Sync Lifecycle Management
   useEffect(() => {
-    // Only play music when actively connected, in lobby, and page is visible
-    if (!showEntrySplash && gameState === 'lobby' && status === 'connected' && !document.hidden) {
+    // Only play music when actively connected, in lobby, and page is visible.
+    // 'reconnecting' counts as connected here: a brief blip shouldn't stop and
+    // restart the track.
+    const linkUp = status === 'connected' || status === 'reconnecting';
+    if (!showEntrySplash && gameState === 'lobby' && linkUp && !document.hidden) {
       lobbyAudioManager.play({ fadeInDuration: 5000 });
       if (isHost) {
         peerService.startAudioSync();
@@ -58,7 +61,8 @@ export default function Lobby() {
   // Resume audio when user returns to the tab (only if lobby is in the right state)
   useEffect(() => {
     const handleVisibilityResume = () => {
-      if (!document.hidden && !showEntrySplash && gameState === 'lobby' && status === 'connected') {
+      const linkUp = status === 'connected' || status === 'reconnecting';
+      if (!document.hidden && !showEntrySplash && gameState === 'lobby' && linkUp) {
         lobbyAudioManager.onVisibilityResume();
       }
     };
@@ -281,7 +285,7 @@ export default function Lobby() {
               return (
                 <div
                   key={peer.id}
-                  className={`flex flex-row items-center justify-between border-2 rounded-xl p-3 px-4 transition-colors ${isMe ? 'border-indigo-900 border-[3px]' : 'border-indigo-900'}`}
+                  className={`flex flex-row items-center justify-between border-2 rounded-xl p-3 px-4 transition-colors ${isMe ? 'border-indigo-900 border-[3px]' : 'border-indigo-900'} ${peer.connected ? '' : 'opacity-50'}`}
                   style={{ backgroundColor: playerColor }}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -296,6 +300,11 @@ export default function Lobby() {
                       </span>
                       {isMe && (
                         <span className="text-[0.8em] text-slate-600 font-medium ml-2 relative -top-[2px] shrink-0">(YOU)</span>
+                      )}
+                      {!peer.connected && (
+                        <span className="text-[0.7em] text-slate-700 font-bold ml-2 uppercase tracking-wider shrink-0 animate-pulse">
+                          Reconnecting…
+                        </span>
                       )}
                     </span>
                   </div>

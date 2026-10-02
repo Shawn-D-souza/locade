@@ -326,31 +326,39 @@ export default function SnakesLadders({ sendDataToPeers, incomingData, onGameEnd
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incomingData, isHost]);
 
-  // ── Players leaving mid-game (host only) ───────────────────────────────────
+  // ── Players leaving and returning mid-game (host only) ─────────────────────
   useEffect(() => {
     if (!isHost || !initialized.current) return;
     const s = stateRef.current;
     if (!s) return;
 
-    const present = new Set(peers.map((p) => p.id));
-    const gone = s.players
-      .filter((p) => !present.has(p.id) && !s.droppedIds.includes(p.id))
-      .map((p) => p.id);
-    if (gone.length === 0) return;
+    // `droppedIds` is derived from the roster rather than accumulated, so a
+    // player who reconnects is un-benched by the same pass that benched them.
+    // A peer with `connected: false` is inside their grace window: skipped by
+    // rotateTurn so the game doesn't stall, but still seated — they keep their
+    // colour and their square and resume exactly where they were.
+    const playable = new Set(peers.filter((p) => p.connected).map((p) => p.id));
+    const seated = new Set(peers.map((p) => p.id));
 
-    const droppedIds = [...s.droppedIds, ...gone];
-    const remaining = s.players.filter((p) => !droppedIds.includes(p.id));
-    if (remaining.length < 2) {
+    const droppedIds = s.players.filter((p) => !playable.has(p.id)).map((p) => p.id);
+
+    const unchanged =
+      droppedIds.length === s.droppedIds.length &&
+      droppedIds.every((id) => s.droppedIds.includes(id));
+    if (unchanged) return;
+
+    // Only end the game once the host has actually released a seat. Someone who
+    // is merely reconnecting must not collapse a two-player game.
+    if (s.players.filter((p) => seated.has(p.id)).length < 2) {
       onGameEnd();
       return;
     }
 
-    // Dropped players keep their seat (so nobody's colour shifts) but are
-    // skipped by rotateTurn from here on. If one was sitting on an idle turn we
-    // have to rotate now, otherwise the game would wait forever; mid-animation
-    // drops resolve themselves when the chain reaches `settling`.
     let next: SnakesLaddersState = { ...s, droppedIds };
-    if (gone.includes(s.currentTurnId) && s.phase.kind === 'idle') {
+    // If a benched player was sitting on an idle turn we have to rotate now,
+    // otherwise the game would wait forever; mid-animation drops resolve
+    // themselves when the chain reaches `settling`.
+    if (droppedIds.includes(s.currentTurnId) && s.phase.kind === 'idle') {
       next = rotateTurn(next);
     }
     commit(next);
