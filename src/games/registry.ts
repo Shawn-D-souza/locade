@@ -3,6 +3,7 @@ import TicTacToe from './tictactoe/TicTacToe';
 import DotsClash from './dots-clash/DotsClash';
 import SnakesLadders from './snakes-ladders/SnakesLadders';
 import Ludo from './ludo/Ludo';
+import Battleship from './battleship/Battleship';
 
 export interface GameConfig {
   id: string;
@@ -51,5 +52,12 @@ export const GAME_REGISTRY: Record<string, GameConfig> = {
     maxPlayers: 2,
     component: TicTacToe,
     thumbnailUrl: '/images/tictactoe.png',
+  },
+  battleship: {
+    id: 'battleship',
+    name: 'Battleship',
+    minPlayers: 2,
+    maxPlayers: 2,
+    component: Battleship,
   }
 };
