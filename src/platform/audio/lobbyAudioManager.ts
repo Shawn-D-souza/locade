@@ -145,7 +145,7 @@ class LobbyAudioManager {
     }
 
     if (this.sourceNode) {
-      try { this.sourceNode.stop(); } catch (e) {}
+      try { this.sourceNode.stop(); } catch { /* already stopped */ }
       this.sourceNode.disconnect();
       this.sourceNode = null;
     }
@@ -171,7 +171,9 @@ class LobbyAudioManager {
 
   private initContext() {
     if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
         this.gainNode = this.ctx.createGain();
@@ -322,7 +324,7 @@ class LobbyAudioManager {
 
     // In Web Audio API, BufferSourceNodes are single-use. Recreate on each playback segment.
     if (this.sourceNode) {
-      try { this.sourceNode.stop(); } catch (e) {}
+      try { this.sourceNode.stop(); } catch { /* already stopped */ }
       this.sourceNode.disconnect();
     }
 
@@ -404,7 +406,7 @@ class LobbyAudioManager {
     if (this.stopTimeout) clearTimeout(this.stopTimeout);
     this.stopTimeout = window.setTimeout(() => {
       if (!this.isPlaying && this.sourceNode) {
-        try { this.sourceNode.stop(); } catch (e) {}
+        try { this.sourceNode.stop(); } catch { /* already stopped */ }
         this.sourceNode.disconnect();
         this.sourceNode = null;
       }

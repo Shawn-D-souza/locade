@@ -44,7 +44,9 @@ export class FeedbackManager {
     this.hapticsEnabled = enabled;
     try {
       localStorage.setItem('locade_haptics_enabled', String(enabled));
-    } catch {}
+    } catch {
+      // Storage unavailable (private mode, quota) — the in-memory flag still holds
+    }
   }
 
   public isHapticsEnabled(): boolean {
@@ -57,7 +59,9 @@ export class FeedbackManager {
     this.sound.setVolume(clamped);
     try {
       localStorage.setItem('locade_sfx_volume', clamped.toString());
-    } catch {}
+    } catch {
+      // Storage unavailable (private mode, quota) — the in-memory volume still holds
+    }
   }
 
   public getSfxVolume(): number {

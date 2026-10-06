@@ -28,7 +28,11 @@ interface NetworkState {
   activeGameId: string | null;
   setGameState: (state: 'lobby' | 'game', gameId?: string) => void;
 
-  incomingGameData: any;
+  /**
+   * The most recent game payload off the wire. Opaque to the platform — each
+   * game narrows it to its own data type at the GameShell boundary.
+   */
+  incomingGameData: unknown;
   clearIncomingGameData: () => void;
 
   // The Roster

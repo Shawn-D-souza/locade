@@ -4,13 +4,24 @@ import DotsClash from './dots-clash/DotsClash';
 import SnakesLadders from './snakes-ladders/SnakesLadders';
 import Ludo from './ludo/Ludo';
 import Battleship from './battleship/Battleship';
+import type { GameProps } from './GameProps';
+
+/**
+ * The registry is heterogeneous: every game is generic over its own wire-data
+ * type, and `GameProps<T>` is invariant in `T` (it both consumes a `T` via
+ * `sendDataToPeers` and produces one via `incomingData`). No single concrete
+ * props type is assignable to all of them, so `any` is the deliberate bridge
+ * here — GameShell re-narrows to the game's own `T` at the render site.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyGameComponent = React.ComponentType<GameProps<any>>;
 
 export interface GameConfig {
   id: string;
   name: string;
   minPlayers: number;
   maxPlayers?: number;
-  component: React.ComponentType<any> | null;
+  component: AnyGameComponent | null;
   thumbnailUrl?: string;
 }
 

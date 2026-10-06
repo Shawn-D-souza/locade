@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { GameProps } from '../GameProps';
-import type { DotsClashData, CellState, GameStatus } from './types';
+import type { DotsClashData, DotsClashState, DotsClashSync, CellState, GameStatus } from './types';
 import { useNetworkStore } from '../../platform/store/useNetworkStore';
 import { useUser } from '../../platform/store/useUserStore';
 import { ExitButton } from '../components/ExitButton';
@@ -12,18 +12,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
   const prevWinStateRef = useRef<boolean>(false);
 
 
-  const [gameState, setGameState] = useState<{
-    board: CellState[][];
-    players: { id: string }[];
-    spawns: Record<string, number>;
-    droppedIds: string[];
-    turnIndex: number;
-    turnCount: number;
-    currentTurnId: string;
-    status: GameStatus;
-    winnerId: string | null;
-    isResolving: boolean;
-  } | null>(null);
+  const [gameState, setGameState] = useState<DotsClashState | null>(null);
 
   useEffect(() => {
     if (gameState?.status === 'win' && !prevWinStateRef.current) {
@@ -81,7 +70,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
       const spawns: Record<string, number> = {};
       allPlayers.forEach(p => { spawns[p.id] = 3; });
 
-      const initialSync: DotsClashData = {
+      const initialSync: DotsClashSync = {
         type: 'SYNC',
         board,
         players: allPlayers,
@@ -95,7 +84,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
         isResolving: false
       };
 
-      setGameState(initialSync as any);
+      setGameState(initialSync);
       sendDataToPeers(initialSync);
     }
   }, [isHost, peers, userId, sendDataToPeers]);
@@ -116,7 +105,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
     const spawns: Record<string, number> = {};
     allPlayers.forEach(p => { spawns[p.id] = 3; });
 
-    const newSync: DotsClashData = {
+    const newSync: DotsClashSync = {
       type: 'SYNC',
       board,
       players: allPlayers,
@@ -130,7 +119,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
       isResolving: false
     };
 
-    setGameState(newSync as any);
+    setGameState(newSync);
     sendDataToPeers(newSync);
   };
 
@@ -304,7 +293,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
   useEffect(() => {
     if (incomingData?.type === 'SYNC') {
       const { type, ...state } = incomingData;
-      setGameState(state as any);
+      setGameState(state);
     } else if (incomingData?.type === 'MOVE' && isHost) {
       processMove(incomingData.row, incomingData.col, incomingData.userId);
     }
@@ -533,7 +522,7 @@ export default function DotsClash({ sendDataToPeers, incomingData, onGameEnd }: 
               // Pure clean modern button style
               const isInteractive = canMove;
               
-              let outlineClasses = '';
+              let outlineClasses: string;
               if (cell.dots >= 4) {
                 outlineClasses = `ring-4 ${cellTheme.cellRing} ring-offset-1 z-20 shadow-lg`;
               } else if (isInteractive) {

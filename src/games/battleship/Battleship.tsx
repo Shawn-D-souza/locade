@@ -630,7 +630,6 @@ function BoardGrid({
   // The turn ending mid-press — a sync, a drop — must not leave a live reticle.
   useEffect(() => {
     if (!interactive && aimRef.current) setAimState(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interactive]);
 
   /** The open cell under a pointer; null off the grid, or on a spent cell. */
